@@ -1,145 +1,55 @@
-# HudAim - Aim Training & Reaction Tests
+# Documentation
 
-A modern, browser-based aim training application built with React. Train your reflexes, improve your mouse accuracy, and track your progress with local and LAN-synced leaderboards.
+Quick reference for HudAim's documentation.
 
-## 🎮 Features
+## Contents
 
-### Games
-- **Reaction Time** - Test how quickly you can respond to visual stimuli
-- **Aim Trainer** - Click targets as quickly and precisely as possible
-- **Grid Shot** - Click targets in a 3x3 grid pattern for flicking practice
-- **Tracking** - Follow a moving target with Kovaaks-style strafe patterns
+| Document | Description |
+|----------|-------------|
+| [Architecture](ARCHITECTURE.md) | Component hierarchy, data flow, animation patterns, anti-cheat design |
+| [API Reference](API.md) | Backend endpoints — sessions, leaderboards, replays |
+| [Tech Stack](TECH_STACK.md) | Technology choices, versions, and rationale |
+| [Contributing](CONTRIBUTING.md) | Development setup, code style, adding new games |
+| [Changelog](CHANGELOG.md) | Version history |
 
-### Key Features
-- **Progressive Difficulty** - Tracking game scales difficulty based on your accuracy
-- **Strafe Patterns** - Smooth, Reactive, Stutter, and Zigzag movement patterns
-- **Reaction Time Metrics** - Measures how fast you reacquire targets after direction changes
-- **UUID-Based User System** - Scores persist across sessions with nickname support
-- **LAN Leaderboard Sync** - Share scores across devices on the same network
-- **Anti-Cheat** - Detects browser resize attempts during gameplay
-- **First-Load Nickname Prompt** - New users set their nickname immediately
+## Games
 
-## 🚀 Quick Start
+| Game | File | Lines | Key Mechanic |
+|------|------|-------|-------------|
+| Reaction Time | `src/pages/ReactionTime.jsx` | 531 | 5-round visual stimulus response |
+| Aim Trainer | `src/pages/AimTrainer.jsx` | 693 | 30 sequential targets, speed-scored |
+| Grid Shot | `src/pages/GridShot.jsx` | 721 | 3x3 grid with staggered spawning |
+| Tracking | `src/pages/Tracking.jsx` | 1028 | Adaptive difficulty, strafe patterns |
+| Target Switching | `src/pages/Switching.jsx` | 838 | 4 moving targets, elimination |
+| Precision | `src/pages/Precision.jsx` | 692 | Small targets, accuracy-weighted scoring |
 
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn
+## Components
 
-### Installation
+| Component | File | Purpose |
+|-----------|------|---------|
+| Navbar | `src/components/Navbar.jsx` | Navigation and settings access |
+| Settings | `src/components/Settings.jsx` | Nickname management, data reset |
+| NicknamePrompt | `src/components/NicknamePrompt.jsx` | First-run setup modal |
+| ReplayViewer | `src/components/ReplayViewer.jsx` | Playback with seek and speed controls |
+| PostGameAnalytics | `src/components/PostGameAnalytics.jsx` | Click heatmaps and statistics |
+| FixedGameArea | `src/components/FixedGameArea.jsx` | Standardized 1200x600px game container |
+| GameCard | `src/components/GameCard.jsx` | Home page game selection card |
 
-```bash
-# Clone the repository
-cd hudaim
+## Utilities
 
-# Install frontend dependencies
-npm install
+| Module | File | Purpose |
+|--------|------|---------|
+| Leaderboard | `src/utils/leaderboard.js` | Score management, identity, server sync |
+| Replay | `src/utils/replay.js` | Recording, playback, IndexedDB storage |
+| Game Session | `src/utils/gameSession.js` | Anti-cheat session management |
 
-# Install backend dependencies
-cd server
-npm install
-cd ..
+## Quick Start
+
+```sh
+# Frontend only
+npm install && npm run dev
+
+# With backend
+cd server && npm install && node index.js  # Terminal 1
+npm run dev                                 # Terminal 2
 ```
-
-### Running the Application
-
-**Development Mode (Frontend only):**
-```bash
-npm run dev
-```
-
-**With Leaderboard Server (Full LAN support):**
-```bash
-# Terminal 1 - Start the backend
-cd server
-node index.js
-
-# Terminal 2 - Start the frontend
-npm run dev
-```
-
-### Access
-- **Local**: http://localhost:5174
-- **LAN**: http://[your-ip]:5174
-- **Backend API**: http://[your-ip]:3001
-
-## 📁 Project Structure
-
-```
-hudaim/
-├── src/
-│   ├── components/       # Reusable UI components
-│   │   ├── Navbar.jsx
-│   │   ├── Settings.jsx
-│   │   └── NicknamePrompt.jsx
-│   ├── pages/            # Game pages
-│   │   ├── Home.jsx
-│   │   ├── ReactionTime.jsx
-│   │   ├── AimTrainer.jsx
-│   │   ├── GridShot.jsx
-│   │   └── Tracking.jsx
-│   ├── utils/            # Utility functions
-│   │   └── leaderboard.js
-│   ├── App.jsx
-│   └── main.jsx
-├── server/               # Express backend for LAN sync
-│   ├── index.js
-│   └── package.json
-├── docs/                 # Documentation
-└── package.json
-```
-
-## 🎯 Game Details
-
-### Tracking Game
-- **Duration**: 30 seconds
-- **Target Size**: 72px diameter
-- **Difficulty Levels**: Easy → Easy+ → Medium → Hard → Insane
-- **Scoring**: Points accumulate faster at higher difficulties (up to 5x multiplier)
-
-### Difficulty Thresholds
-| Level | Accuracy Required | Point Multiplier | Time Bonus/sec |
-|-------|------------------|------------------|----------------|
-| Easy | 0-30% | 1x | 0 |
-| Easy+ | 30-50% | 1.5x | +5 |
-| Medium | 50-70% | 2x | +15 |
-| Hard | 70-85% | 3x | +40 |
-| Insane | 85%+ | 5x | +100 |
-
-## 🔧 Configuration
-
-### Vite Config (`vite.config.js`)
-The server is configured to be accessible on LAN:
-```javascript
-server: {
-  host: '0.0.0.0'
-}
-```
-
-### Backend Port
-Default: `3001` (configurable in `server/index.js`)
-
-## 📝 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/leaderboard/:gameType` | Get leaderboard for a game |
-| GET | `/api/leaderboard` | Get all leaderboards |
-| POST | `/api/leaderboard/:gameType` | Add a score |
-| PUT | `/api/nickname` | Update nickname for all scores |
-| DELETE | `/api/leaderboard` | Clear all leaderboards |
-| DELETE | `/api/leaderboard/:gameType` | Clear specific game leaderboard |
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development guidelines.
-
-## 📄 License
-
-MIT License - See [LICENSE](./LICENSE) for details.
-
-## 📚 Additional Documentation
-
-- [CHANGELOG.md](./CHANGELOG.md) - Version history
-- [TECH_STACK.md](./TECH_STACK.md) - Technology details
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Code architecture
-- [CONTRIBUTING.md](./CONTRIBUTING.md) - Development guidelines

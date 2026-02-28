@@ -4,12 +4,12 @@
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
+- npm
 - Git
 
 ### Getting Started
 
-```bash
+```sh
 # Install dependencies
 npm install
 
@@ -25,15 +25,14 @@ cd server && node index.js
 
 ## Code Style
 
-### General Guidelines
-- Use functional components with hooks
-- Prefer `const` over `let`, avoid `var`
-- Use meaningful variable names
-- Keep functions small and focused
+### General
+- Functional components with hooks
+- `const` over `let`, never `var`
+- Meaningful variable names
+- Small, focused functions
 
-### React Patterns
+### State vs Refs
 
-#### State vs Refs
 ```javascript
 // Use STATE for UI that needs to re-render
 const [gameState, setGameState] = useState('idle');
@@ -42,36 +41,37 @@ const [gameState, setGameState] = useState('idle');
 const positionRef = useRef({ x: 0, y: 0 });
 ```
 
-#### Animation Loops
+### Animation Loops
+
 ```javascript
-// Always use requestAnimationFrame for smooth animations
 useEffect(() => {
-  let running = true;
-  
+  if (gameState !== 'playing') return;
+
   const animate = (timestamp) => {
-    if (!running) return;
-    // ... animation logic
-    requestAnimationFrame(animate);
+    // Update physics using refs
+    // Update DOM directly
+    animationRef.current = requestAnimationFrame(animate);
   };
-  
-  requestAnimationFrame(animate);
-  
-  return () => { running = false; };
-}, [dependency]);
+
+  animationRef.current = requestAnimationFrame(animate);
+  return () => cancelAnimationFrame(animationRef.current);
+}, [gameState]);
 ```
 
 ### Styling
-- Use inline style objects (no external CSS)
-- Define styles at the top of the component file
-- Use consistent color palette:
-  - Primary: `#a855f7` (purple)
-  - Secondary: `#ec4899` (pink)
-  - Accent: `#22d3ee` (cyan)
-  - Success: `#22c55e` (green)
-  - Warning: `#facc15` (yellow)
-  - Error: `#ef4444` (red)
-  - Background: `#0f172a`, `#1e293b`
-  - Text: `white`, `#94a3b8`
+
+Use inline style objects with the project color palette:
+
+| Role | Color |
+|------|-------|
+| Primary | `#a855f7` (purple) |
+| Secondary | `#ec4899` (pink) |
+| Accent | `#22d3ee` (cyan) |
+| Success | `#22c55e` (green) |
+| Warning | `#facc15` (yellow) |
+| Error | `#ef4444` (red) |
+| Background | `#0f172a`, `#1e293b` |
+| Text | `white`, `#94a3b8` |
 
 ## Adding a New Game
 
@@ -80,25 +80,26 @@ useEffect(() => {
 ```javascript
 // src/pages/NewGame.jsx
 import { useState, useRef, useEffect } from 'react';
-import { GameIcon, RotateCcw, Trophy, Play, User } from 'lucide-react';
-import { getLeaderboard, addScore, getNickname, setNickname } from '../utils/leaderboard';
-
-const styles = {
-  // ... define styles
-};
+import { RotateCcw, Trophy, Play, User } from 'lucide-react';
+import { getLeaderboard, addScore, getNickname } from '../utils/leaderboard';
+import { ReplayRecorder } from '../utils/replay';
+import { startGameSession, endGameSession } from '../utils/gameSession';
+import FixedGameArea from '../components/FixedGameArea';
+import PostGameAnalytics from '../components/PostGameAnalytics';
+import ReplayViewer from '../components/ReplayViewer';
 
 export default function NewGame() {
   const [gameState, setGameState] = useState('idle');
   const [nickname, setNicknameState] = useState(() => getNickname());
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('newgame'));
-  
+
   // Game logic...
-  
+
   const handleGameEnd = () => {
     const newLeaderboard = addScore('newgame', score, { /* stats */ });
     setLeaderboard(newLeaderboard);
   };
-  
+
   return (
     // JSX...
   );
@@ -125,76 +126,94 @@ import NewGame from './pages/NewGame';
 
 Add a card in `Home.jsx` linking to the new game.
 
+### 5. Add Anti-Cheat Bounds
+
+In `server/index.js`, add bounds to `GAME_BOUNDS`:
+
+```javascript
+newgame: {
+  maxScore: 10000,
+  gameDuration: 30,
+  // ... game-specific constraints
+},
+```
+
+And add duration bounds to `expectedDurations` in the session end handler.
+
+### 6. Add Stats Schema
+
+Document the stats object in `docs/API.md` under "Stats Objects by Game".
+
 ## Leaderboard Integration
 
 ### Saving Scores
+
 ```javascript
 import { addScore } from '../utils/leaderboard';
 
-// When game ends:
 const newLeaderboard = addScore('gametype', score, {
-  // Optional stats object
   accuracy: 95,
   time: 30,
 });
 ```
 
-### Displaying Leaderboard
+### Replay Recording
+
 ```javascript
-{leaderboard.length > 0 && (
-  <div style={styles.leaderboardSection}>
-    <h3>Leaderboard</h3>
-    {leaderboard.map((entry, i) => (
-      <div key={i}>
-        #{i + 1} {entry.nickname} - {entry.score}
-      </div>
-    ))}
-  </div>
-)}
+import { ReplayRecorder, saveReplayLocal } from '../utils/replay';
+
+// Start recording
+const recorder = new ReplayRecorder('gametype');
+recorder.start();
+
+// Each frame: record mouse position and events
+recorder.addFrame(mouseX, mouseY, events);
+
+// End recording
+const replayData = recorder.stop();
+await saveReplayLocal(replayData);
+```
+
+### Anti-Cheat Session
+
+```javascript
+import { startGameSession, endGameSession } from '../utils/gameSession';
+
+// Before gameplay
+const session = await startGameSession('gametype');
+
+// After gameplay
+await endGameSession(session.sessionId, score, stats);
 ```
 
 ## Testing
 
-### Manual Testing Checklist
-- [ ] Game starts correctly
-- [ ] Game ends and shows results
-- [ ] Score is saved to leaderboard
+### Manual Checklist
+- [ ] Game starts and ends correctly
+- [ ] Score saves to leaderboard
+- [ ] Replay records and plays back
+- [ ] Post-game analytics display
 - [ ] Nickname changes update all scores
-- [ ] Game works offline (no server)
-- [ ] Game works on LAN with server
+- [ ] Works offline (no server)
+- [ ] Works on LAN with server
 - [ ] Reset button works
 - [ ] No console errors
-
-### Performance Testing
-- Check for smooth 60fps in animation games
-- Verify no memory leaks (check browser dev tools)
-- Test on different screen sizes
+- [ ] Smooth 60 FPS in animation loop
+- [ ] No memory leaks (check browser dev tools)
 
 ## Git Workflow
 
 ### Branch Naming
-- `feature/game-name` - New games
-- `fix/issue-description` - Bug fixes
-- `improve/component-name` - Improvements
+- `feature/game-name` — new games
+- `fix/issue-description` — bug fixes
+- `improve/component-name` — improvements
 
 ### Commit Messages
 ```
 feat: add spider shot game mode
 fix: tracking reaction time not updating
 improve: optimize gridshot target rendering
-docs: update README with new features
-```
-
-## File Structure for New Features
-
-```
-src/
-├── components/
-│   └── NewComponent.jsx    # Reusable components
-├── pages/
-│   └── NewGame.jsx         # New game pages
-└── utils/
-    └── newUtility.js       # New utilities
+docs: update API reference with new endpoints
 ```
 
 ## Common Issues
@@ -205,14 +224,13 @@ src/
 - Avoid creating new objects/arrays in animation loops
 
 ### Leaderboard Not Showing
-- Check that `leaderboard.length > 0`
 - Verify game type string matches in `addScore` and `getLeaderboard`
 - Check localStorage in browser dev tools
 
 ### Server Connection Issues
 - Ensure server is running on port 3001
 - Check CORS is enabled
-- Verify `API_BASE` URL in leaderboard.js
+- Verify `VITE_API_URL` environment variable
 
 ## Questions?
 
