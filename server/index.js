@@ -3,11 +3,13 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DATA_FILE = path.join(__dirname, 'leaderboard.json');
-const REPLAYS_DIR = path.join(__dirname, 'replays');
+
+// Wrap async route handlers for Express 4 (doesn't catch async rejections)
+const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 // Anti-cheat secret key
 const ANTI_CHEAT_SECRET = process.env.ANTI_CHEAT_SECRET || crypto.randomBytes(32).toString('hex');
@@ -59,58 +61,19 @@ const validateReplayId = (req, res, next) => {
   next();
 };
 
-// Initialize replays directory
-const initReplaysDir = () => {
-  if (!fs.existsSync(REPLAYS_DIR)) {
-    fs.mkdirSync(REPLAYS_DIR, { recursive: true });
-  }
-};
-
-// Initialize data file if it doesn't exist
-const initDataFile = () => {
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({}));
-  }
-};
-
-// Read leaderboard data
-const readData = () => {
-  try {
-    initDataFile();
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading data:', err);
-    return {};
-  }
-};
-
-// Write leaderboard data
-const writeData = (data) => {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    return true;
-  } catch (err) {
-    console.error('Error writing data:', err);
-    return false;
-  }
-};
 
 // GET /api/leaderboard/:gameType - Get leaderboard for a game
-app.get('/api/leaderboard/:gameType', validateGameType, (req, res) => {
+app.get('/api/leaderboard/:gameType', validateGameType, asyncHandler(async (req, res) => {
   const { gameType } = req.params;
-  const data = readData();
-  const leaderboard = (data[gameType] || [])
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
+  const leaderboard = await db.getLeaderboard(gameType);
   res.json(leaderboard);
-});
+}));
 
 // GET /api/leaderboard - Get all leaderboards
-app.get('/api/leaderboard', (req, res) => {
-  const data = readData();
+app.get('/api/leaderboard', asyncHandler(async (req, res) => {
+  const data = await db.getAllLeaderboards();
   res.json(data);
-});
+}));
 
 // ============ ANTI-CHEAT SYSTEM ============
 
@@ -417,7 +380,7 @@ app.post('/api/session/start', (req, res) => {
 });
 
 // POST /api/session/end - End a game session and submit score
-app.post('/api/session/end', (req, res) => {
+app.post('/api/session/end', asyncHandler(async (req, res) => {
   const { sessionId, signature, score, stats, nickname } = req.body;
   
   if (!sessionId || !signature) {
@@ -481,47 +444,25 @@ app.post('/api/session/end', (req, res) => {
   // Clean up session
   activeSessions.delete(sessionId);
   
-  // Save to leaderboard (reuse existing logic)
-  const data = readData();
+  // Save to leaderboard
   const gameType = session.gameType;
-  
-  if (!data[gameType]) {
-    data[gameType] = [];
-  }
-  
   const sanitizedNickname = (nickname || 'Player').trim().slice(0, 20);
-  
-  const existingIndex = data[gameType].findIndex(e => e.uuid === session.uuid);
-  
+
   const newEntry = {
     uuid: session.uuid,
     nickname: sanitizedNickname,
     score: Math.round(score),
     stats: stats || {},
     date: new Date().toISOString(),
-    verified: true, // Mark as verified through session system
+    verified: true,
   };
-  
-  if (existingIndex >= 0) {
-    if (score > data[gameType][existingIndex].score) {
-      data[gameType][existingIndex] = newEntry;
-    } else {
-      data[gameType][existingIndex].nickname = sanitizedNickname;
-    }
-  } else {
-    data[gameType].push(newEntry);
-  }
-  
-  data[gameType] = data[gameType]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
-  
-  writeData(data);
-  res.json({ success: true, leaderboard: data[gameType] });
-});
+
+  const leaderboard = await db.upsertScore(gameType, newEntry);
+  res.json({ success: true, leaderboard });
+}));
 
 // POST /api/leaderboard/:gameType - Add a score
-app.post('/api/leaderboard/:gameType', validateGameType, (req, res) => {
+app.post('/api/leaderboard/:gameType', validateGameType, asyncHandler(async (req, res) => {
   const { gameType } = req.params;
   const { uuid, nickname, score, stats } = req.body;
 
@@ -541,18 +482,6 @@ app.post('/api/leaderboard/:gameType', validateGameType, (req, res) => {
     return res.status(400).json({ error: validation.error });
   }
 
-  const data = readData();
-  
-  if (!data[gameType]) {
-    data[gameType] = [];
-  }
-
-  // Find by UUID if provided, otherwise by nickname
-  const existingIndex = uuid 
-    ? data[gameType].findIndex(e => e.uuid === uuid)
-    : data[gameType].findIndex(e => e.nickname === nickname);
-    
-  // Sanitize nickname
   const sanitizedNickname = nickname.trim().slice(0, 20);
 
   const newEntry = {
@@ -563,147 +492,39 @@ app.post('/api/leaderboard/:gameType', validateGameType, (req, res) => {
     date: new Date().toISOString(),
   };
 
-  if (existingIndex >= 0) {
-    // Only update if new score is better
-    if (score > data[gameType][existingIndex].score) {
-      data[gameType][existingIndex] = newEntry;
-    } else {
-      // Update nickname even if score isn't better
-      data[gameType][existingIndex].nickname = nickname;
-    }
-  } else {
-    data[gameType].push(newEntry);
-  }
-
-  // Sort and keep top 10
-  data[gameType] = data[gameType]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
-
-  writeData(data);
-  res.json(data[gameType]);
-});
+  const leaderboard = await db.upsertScore(gameType, newEntry);
+  res.json(leaderboard);
+}));
 
 // PUT /api/nickname - Update nickname for all scores with given UUID
-app.put('/api/nickname', (req, res) => {
+app.put('/api/nickname', asyncHandler(async (req, res) => {
   const { uuid, nickname } = req.body;
 
   if (!uuid || !nickname) {
     return res.status(400).json({ error: 'uuid and nickname are required' });
   }
 
-  const data = readData();
-  
-  // Update nickname in all game types
-  Object.keys(data).forEach(gameType => {
-    data[gameType].forEach(entry => {
-      if (entry.uuid === uuid) {
-        entry.nickname = nickname;
-      }
-    });
-  });
-
-  writeData(data);
+  await db.updateNickname(uuid, nickname);
   res.json({ success: true });
-});
+}));
 
 // DELETE /api/leaderboard - Clear all leaderboard data
-app.delete('/api/leaderboard', requireAdmin, (req, res) => {
-  writeData({});
+app.delete('/api/leaderboard', requireAdmin, asyncHandler(async (req, res) => {
+  await db.clearLeaderboard(null);
   res.json({ success: true });
-});
+}));
 
 // DELETE /api/leaderboard/:gameType - Clear leaderboard for a game
-app.delete('/api/leaderboard/:gameType', requireAdmin, validateGameType, (req, res) => {
+app.delete('/api/leaderboard/:gameType', requireAdmin, validateGameType, asyncHandler(async (req, res) => {
   const { gameType } = req.params;
-  const data = readData();
-  delete data[gameType];
-  writeData(data);
+  await db.clearLeaderboard(gameType);
   res.json({ success: true });
-});
+}));
 
 // ============ REPLAY API ENDPOINTS ============
 
-// Helper: Get replay file path
-const getReplayPath = (replayId) => path.join(REPLAYS_DIR, `${replayId}.json`);
-
-// Helper: Get all replays for a game type
-const getReplaysForGame = (gameType) => {
-  initReplaysDir();
-  const files = fs.readdirSync(REPLAYS_DIR);
-  const replays = [];
-  
-  files.forEach(file => {
-    if (file.endsWith('.json')) {
-      try {
-        const data = JSON.parse(fs.readFileSync(path.join(REPLAYS_DIR, file), 'utf8'));
-        if (data.gameType === gameType) {
-          // Return metadata only, not full frame data
-          replays.push({
-            id: data.id,
-            gameType: data.gameType,
-            userId: data.userId,
-            nickname: data.nickname,
-            score: data.score,
-            duration: data.duration,
-            timestamp: data.timestamp
-          });
-        }
-      } catch (err) {
-        console.error(`Error reading replay file ${file}:`, err);
-      }
-    }
-  });
-  
-  return replays.sort((a, b) => b.score - a.score).slice(0, 3);
-};
-
-// Helper: Check if score qualifies for top 3
-const isTop3Score = (gameType, score) => {
-  const data = readData();
-  const leaderboard = data[gameType] || [];
-  
-  if (leaderboard.length < 3) return true;
-  
-  const sortedScores = [...leaderboard].sort((a, b) => b.score - a.score);
-  const top3MinScore = sortedScores[2]?.score || 0;
-  
-  return score >= top3MinScore;
-};
-
-// Helper: Clean up old replays (keep only top 3 per game type)
-const cleanupReplays = (gameType) => {
-  const replays = getReplaysForGame(gameType);
-  const data = readData();
-  const leaderboard = (data[gameType] || []).sort((a, b) => b.score - a.score).slice(0, 3);
-  const top3UserIds = leaderboard.map(e => e.uuid);
-  
-  // Get all replay files for this game type
-  initReplaysDir();
-  const files = fs.readdirSync(REPLAYS_DIR);
-  
-  files.forEach(file => {
-    if (file.endsWith('.json')) {
-      try {
-        const filePath = path.join(REPLAYS_DIR, file);
-        const replayData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        
-        if (replayData.gameType === gameType) {
-          // Delete if not in top 3
-          if (!top3UserIds.includes(replayData.userId)) {
-            fs.unlinkSync(filePath);
-            console.log(`Cleaned up replay: ${file}`);
-          }
-        }
-      } catch (err) {
-        console.error(`Error processing replay file ${file}:`, err);
-      }
-    }
-  });
-};
-
 // POST /api/replay - Upload a replay (only accepts top 3 scores)
-app.post('/api/replay', (req, res) => {
+app.post('/api/replay', asyncHandler(async (req, res) => {
   const replayData = req.body;
 
   // Validate required fields
@@ -721,74 +542,55 @@ app.post('/api/replay', (req, res) => {
   if (!VALID_GAME_TYPES.includes(replayData.gameType)) {
     return res.status(400).json({ error: 'Invalid game type' });
   }
-  
+
   // Check if score qualifies for top 3
-  if (!isTop3Score(replayData.gameType, replayData.score)) {
-    return res.status(403).json({ 
+  if (!(await db.isTop3Score(replayData.gameType, replayData.score))) {
+    return res.status(403).json({
       error: 'Score does not qualify for top 3',
       message: 'Only top 3 scores are saved to server'
     });
   }
-  
-  // Save replay
-  initReplaysDir();
-  const filePath = getReplayPath(replayData.id);
-  
+
   try {
-    fs.writeFileSync(filePath, JSON.stringify(replayData));
-    
-    // Clean up old replays for this game type
-    cleanupReplays(replayData.gameType);
-    
+    await db.saveReplay(replayData);
+    await db.cleanupReplays(replayData.gameType);
     res.json({ success: true, id: replayData.id });
   } catch (err) {
     console.error('Error saving replay:', err);
     res.status(500).json({ error: 'Failed to save replay' });
   }
-});
+}));
 
 // GET /api/replay/:replayId - Get a specific replay
-app.get('/api/replay/:replayId', validateReplayId, (req, res) => {
+app.get('/api/replay/:replayId', validateReplayId, asyncHandler(async (req, res) => {
   const { replayId } = req.params;
-  const filePath = getReplayPath(replayId);
-  
-  if (!fs.existsSync(filePath)) {
+  const replayData = await db.getReplay(replayId);
+
+  if (!replayData) {
     return res.status(404).json({ error: 'Replay not found' });
   }
-  
-  try {
-    const replayData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    res.json(replayData);
-  } catch (err) {
-    console.error('Error reading replay:', err);
-    res.status(500).json({ error: 'Failed to read replay' });
-  }
-});
+
+  res.json(replayData);
+}));
 
 // GET /api/replays/:gameType - Get all replays for a game type (metadata only)
-app.get('/api/replays/:gameType', validateGameType, (req, res) => {
+app.get('/api/replays/:gameType', validateGameType, asyncHandler(async (req, res) => {
   const { gameType } = req.params;
-  const replays = getReplaysForGame(gameType);
+  const replays = await db.getReplaysForGame(gameType);
   res.json(replays);
-});
+}));
 
 // DELETE /api/replay/:replayId - Delete a replay
-app.delete('/api/replay/:replayId', requireAdmin, validateReplayId, (req, res) => {
+app.delete('/api/replay/:replayId', requireAdmin, validateReplayId, asyncHandler(async (req, res) => {
   const { replayId } = req.params;
-  const filePath = getReplayPath(replayId);
-  
-  if (!fs.existsSync(filePath)) {
+  const deleted = await db.deleteReplay(replayId);
+
+  if (!deleted) {
     return res.status(404).json({ error: 'Replay not found' });
   }
-  
-  try {
-    fs.unlinkSync(filePath);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Error deleting replay:', err);
-    res.status(500).json({ error: 'Failed to delete replay' });
-  }
-});
+
+  res.json({ success: true });
+}));
 
 // Serve built frontend in production
 const distPath = path.join(__dirname, '..', 'dist');
@@ -801,11 +603,12 @@ if (fs.existsSync(distPath)) {
 }
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-  initDataFile();
-  initReplaysDir();
-  if (fs.existsSync(distPath)) {
-    console.log(`Serving frontend from ${distPath}`);
-  }
-});
+(async () => {
+  await db.initialize();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    if (fs.existsSync(distPath)) {
+      console.log(`Serving frontend from ${distPath}`);
+    }
+  });
+})();
