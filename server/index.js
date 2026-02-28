@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'leaderboard.json');
 const REPLAYS_DIR = path.join(__dirname, 'replays');
 
@@ -790,9 +790,22 @@ app.delete('/api/replay/:replayId', requireAdmin, validateReplayId, (req, res) =
   }
 });
 
+// Serve built frontend in production
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // SPA fallback: serve index.html for any non-API route
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Leaderboard server running on http://0.0.0.0:${PORT}`);
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
   initDataFile();
   initReplaysDir();
+  if (fs.existsSync(distPath)) {
+    console.log(`Serving frontend from ${distPath}`);
+  }
 });
