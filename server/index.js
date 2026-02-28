@@ -611,4 +611,7 @@ if (fs.existsSync(distPath)) {
       console.log(`Serving frontend from ${distPath}`);
     }
   });
-})();
+})().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

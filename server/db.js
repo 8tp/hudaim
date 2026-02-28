@@ -11,42 +11,53 @@ let usePostgres = false;
 
 async function initialize() {
   if (process.env.DATABASE_URL) {
-    const { Pool } = require('pg');
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
+    try {
+      const { Pool } = require('pg');
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      });
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS scores (
-        id SERIAL PRIMARY KEY,
-        game_type VARCHAR(20) NOT NULL,
-        uuid VARCHAR(36) NOT NULL,
-        nickname VARCHAR(20) NOT NULL,
-        score INTEGER NOT NULL,
-        stats JSONB DEFAULT '{}',
-        verified BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE (game_type, uuid)
-      )
-    `);
+      // Test the connection
+      await pool.query('SELECT 1');
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS replays (
-        id VARCHAR(255) PRIMARY KEY,
-        game_type VARCHAR(20) NOT NULL,
-        user_id VARCHAR(36),
-        nickname VARCHAR(20),
-        score INTEGER,
-        duration REAL,
-        frames JSONB NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS scores (
+          id SERIAL PRIMARY KEY,
+          game_type VARCHAR(20) NOT NULL,
+          uuid VARCHAR(36) NOT NULL,
+          nickname VARCHAR(20) NOT NULL,
+          score INTEGER NOT NULL,
+          stats JSONB DEFAULT '{}',
+          verified BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE (game_type, uuid)
+        )
+      `);
 
-    usePostgres = true;
-    console.log('Database: PostgreSQL connected');
-  } else {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS replays (
+          id VARCHAR(255) PRIMARY KEY,
+          game_type VARCHAR(20) NOT NULL,
+          user_id VARCHAR(36),
+          nickname VARCHAR(20),
+          score INTEGER,
+          duration REAL,
+          frames JSONB NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `);
+
+      usePostgres = true;
+      console.log('Database: PostgreSQL connected');
+    } catch (err) {
+      console.error('PostgreSQL connection failed, falling back to JSON:', err.message);
+      pool = null;
+      usePostgres = false;
+    }
+  }
+
+  if (!usePostgres) {
     if (!fs.existsSync(DATA_FILE)) {
       fs.writeFileSync(DATA_FILE, JSON.stringify({}));
     }
