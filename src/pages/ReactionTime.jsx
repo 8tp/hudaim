@@ -365,7 +365,10 @@ export default function ReactionTime() {
       if (attemptsRef.current >= 5) {
         gameStateRef.current = WAITING;
         attemptsRef.current = 0;
+        resultsRef.current = [];
         setGameState(WAITING);
+        setResults([]);
+        setReactionTime(null);
         setAttempts(0);
       }
     }

@@ -579,13 +579,17 @@ export default function Switching() {
     animationFrameRef.current = requestAnimationFrame(gameLoop);
     
     // Start timer
+    const gameEndedRef = { current: false };
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        const newTime = prev - 1;
-        if (newTime <= 0) {
-          endGame();
+        if (prev <= 1) {
+          if (!gameEndedRef.current) {
+            gameEndedRef.current = true;
+            setTimeout(() => endGame(), 0);
+          }
+          return 0;
         }
-        return Math.max(0, newTime);
+        return prev - 1;
       });
     }, 1000);
   };
@@ -593,18 +597,24 @@ export default function Switching() {
   const endGame = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    
+
     gameStateRef.current = 'finished';
     setGameState('finished');
-    
+
     const score = killsRef.current * 100;
-    
+
+    // Compute avgSwitchTime from ref to avoid stale state
+    const times = switchTimesRef.current;
+    const computedAvgSwitchTime = times.length > 0
+      ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+      : 0;
+
     // Stop replay recording and save
     if (replayRecorderRef.current) {
       replayRecorderRef.current.stop();
       const stats = {
         kills: killsRef.current,
-        avgSwitchTime: avgSwitchTime,
+        avgSwitchTime: computedAvgSwitchTime,
       };
       const replayData = replayRecorderRef.current.getReplayData(
         getUserUUID(),
@@ -615,11 +625,11 @@ export default function Switching() {
       setLastReplay(replayData);
       saveReplay(replayData);
     }
-    
+
     // Submit score through anti-cheat session
     const stats = {
       kills: killsRef.current,
-      avgSwitchTime: avgSwitchTime,
+      avgSwitchTime: computedAvgSwitchTime,
     };
     endGameSession(score, stats, nickname).then(result => {
       if (result?.success && result.leaderboard) {

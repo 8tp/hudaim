@@ -364,11 +364,15 @@ export default function Precision() {
     setTimeLeft(GAME_DURATION);
     
     // Start countdown timer
+    const gameEndedRef = { current: false };
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          endGame();
+          if (!gameEndedRef.current) {
+            gameEndedRef.current = true;
+            setTimeout(() => endGame(), 0);
+          }
           return 0;
         }
         return prev - 1;

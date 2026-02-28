@@ -9,16 +9,55 @@ const PORT = 3001;
 const DATA_FILE = path.join(__dirname, 'leaderboard.json');
 const REPLAYS_DIR = path.join(__dirname, 'replays');
 
-// Anti-cheat secret key (in production, use environment variable)
-const ANTI_CHEAT_SECRET = process.env.ANTI_CHEAT_SECRET || 'hudaim-anticheat-secret-2026';
+// Anti-cheat secret key
+const ANTI_CHEAT_SECRET = process.env.ANTI_CHEAT_SECRET || crypto.randomBytes(32).toString('hex');
+if (!process.env.ANTI_CHEAT_SECRET) {
+  console.warn('WARNING: ANTI_CHEAT_SECRET not set — using random secret (sessions will not survive restarts)');
+}
 
 // Active game sessions (in production, use Redis or similar)
 const activeSessions = new Map();
 const SESSION_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
+// Valid game types whitelist
+const VALID_GAME_TYPES = ['aim', 'gridshot', 'tracking', 'switching', 'precision', 'reaction'];
+
+// Admin secret for destructive operations
+const ADMIN_SECRET = process.env.ADMIN_SECRET || null;
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increased limit for replay data
+
+// Validate gameType parameter
+const validateGameType = (req, res, next) => {
+  const { gameType } = req.params;
+  if (gameType && !VALID_GAME_TYPES.includes(gameType)) {
+    return res.status(400).json({ error: `Invalid game type. Must be one of: ${VALID_GAME_TYPES.join(', ')}` });
+  }
+  next();
+};
+
+// Require admin secret for destructive operations
+const requireAdmin = (req, res, next) => {
+  if (!ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Admin operations disabled — set ADMIN_SECRET env var' });
+  }
+  const provided = req.headers['x-admin-secret'];
+  if (!provided || provided !== ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Invalid admin secret' });
+  }
+  next();
+};
+
+// Validate replay ID (prevent path traversal)
+const validateReplayId = (req, res, next) => {
+  const { replayId } = req.params;
+  if (replayId && !/^[a-zA-Z0-9_-]+$/.test(replayId)) {
+    return res.status(400).json({ error: 'Invalid replay ID' });
+  }
+  next();
+};
 
 // Initialize replays directory
 const initReplaysDir = () => {
@@ -58,7 +97,7 @@ const writeData = (data) => {
 };
 
 // GET /api/leaderboard/:gameType - Get leaderboard for a game
-app.get('/api/leaderboard/:gameType', (req, res) => {
+app.get('/api/leaderboard/:gameType', validateGameType, (req, res) => {
   const { gameType } = req.params;
   const data = readData();
   const leaderboard = (data[gameType] || [])
@@ -350,7 +389,11 @@ app.post('/api/session/start', (req, res) => {
   if (!gameType || !uuid) {
     return res.status(400).json({ error: 'gameType and uuid required' });
   }
-  
+
+  if (!VALID_GAME_TYPES.includes(gameType)) {
+    return res.status(400).json({ error: `Invalid game type. Must be one of: ${VALID_GAME_TYPES.join(', ')}` });
+  }
+
   if (!isValidUUID(uuid)) {
     return res.status(400).json({ error: 'Invalid UUID format' });
   }
@@ -478,7 +521,7 @@ app.post('/api/session/end', (req, res) => {
 });
 
 // POST /api/leaderboard/:gameType - Add a score
-app.post('/api/leaderboard/:gameType', (req, res) => {
+app.post('/api/leaderboard/:gameType', validateGameType, (req, res) => {
   const { gameType } = req.params;
   const { uuid, nickname, score, stats } = req.body;
 
@@ -565,13 +608,13 @@ app.put('/api/nickname', (req, res) => {
 });
 
 // DELETE /api/leaderboard - Clear all leaderboard data
-app.delete('/api/leaderboard', (req, res) => {
+app.delete('/api/leaderboard', requireAdmin, (req, res) => {
   writeData({});
   res.json({ success: true });
 });
 
 // DELETE /api/leaderboard/:gameType - Clear leaderboard for a game
-app.delete('/api/leaderboard/:gameType', (req, res) => {
+app.delete('/api/leaderboard/:gameType', requireAdmin, validateGameType, (req, res) => {
   const { gameType } = req.params;
   const data = readData();
   delete data[gameType];
@@ -622,7 +665,7 @@ const isTop3Score = (gameType, score) => {
   
   if (leaderboard.length < 3) return true;
   
-  const sortedScores = leaderboard.sort((a, b) => b.score - a.score);
+  const sortedScores = [...leaderboard].sort((a, b) => b.score - a.score);
   const top3MinScore = sortedScores[2]?.score || 0;
   
   return score >= top3MinScore;
@@ -662,11 +705,21 @@ const cleanupReplays = (gameType) => {
 // POST /api/replay - Upload a replay (only accepts top 3 scores)
 app.post('/api/replay', (req, res) => {
   const replayData = req.body;
-  
+
   // Validate required fields
-  if (!replayData.id || !replayData.gameType || !replayData.userId || 
+  if (!replayData.id || !replayData.gameType || !replayData.userId ||
       !replayData.frames || !Array.isArray(replayData.frames)) {
     return res.status(400).json({ error: 'Invalid replay data' });
+  }
+
+  // Validate replay ID format
+  if (!/^[a-zA-Z0-9_-]+$/.test(replayData.id)) {
+    return res.status(400).json({ error: 'Invalid replay ID format' });
+  }
+
+  // Validate game type
+  if (!VALID_GAME_TYPES.includes(replayData.gameType)) {
+    return res.status(400).json({ error: 'Invalid game type' });
   }
   
   // Check if score qualifies for top 3
@@ -695,7 +748,7 @@ app.post('/api/replay', (req, res) => {
 });
 
 // GET /api/replay/:replayId - Get a specific replay
-app.get('/api/replay/:replayId', (req, res) => {
+app.get('/api/replay/:replayId', validateReplayId, (req, res) => {
   const { replayId } = req.params;
   const filePath = getReplayPath(replayId);
   
@@ -713,14 +766,14 @@ app.get('/api/replay/:replayId', (req, res) => {
 });
 
 // GET /api/replays/:gameType - Get all replays for a game type (metadata only)
-app.get('/api/replays/:gameType', (req, res) => {
+app.get('/api/replays/:gameType', validateGameType, (req, res) => {
   const { gameType } = req.params;
   const replays = getReplaysForGame(gameType);
   res.json(replays);
 });
 
 // DELETE /api/replay/:replayId - Delete a replay
-app.delete('/api/replay/:replayId', (req, res) => {
+app.delete('/api/replay/:replayId', requireAdmin, validateReplayId, (req, res) => {
   const { replayId } = req.params;
   const filePath = getReplayPath(replayId);
   

@@ -613,101 +613,105 @@ export default function Tracking() {
     };
   }, [gameState]);
 
+  const endTrackingGameRef = useRef(null);
+  const endTrackingGame = () => {
+    clearInterval(timerRef.current);
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    gameStateRef.current = 'finished';
+    setFinalTrackingTime(trackingTimeRef.current);
+
+    // Calculate final reaction time
+    const avgReaction = reactionTimesRef.current.length > 0
+      ? Math.round(reactionTimesRef.current.reduce((a, b) => a + b, 0) / reactionTimesRef.current.length)
+      : 0;
+    setFinalReactionTime(avgReaction);
+
+    // Calculate final difficulty reached
+    let diffLabel = 'Easy';
+    if (rollingAccuracyRef.current >= 85) diffLabel = 'Insane';
+    else if (rollingAccuracyRef.current >= 70) diffLabel = 'Hard';
+    else if (rollingAccuracyRef.current >= 50) diffLabel = 'Medium';
+    else if (rollingAccuracyRef.current >= 30) diffLabel = 'Easy+';
+    setFinalDifficulty(diffLabel);
+
+    setTimeLeft(0);
+    setGameState('finished');
+
+    // Check if player cheated by resizing
+    if (cheatedRef.current) {
+      return;
+    }
+
+    // Aggressive difficulty-based scoring
+    const accumulatedPoints = Math.round(pointsAccumulatedRef.current);
+    const diffTime = difficultyTimeRef.current;
+
+    const difficultyTimeBonus =
+      (diffTime.easyPlus * 5) +
+      (diffTime.medium * 15) +
+      (diffTime.hard * 40) +
+      (diffTime.insane * 100);
+
+    const reactionBonus = avgReaction > 0 ? Math.max(0, 100 - Math.floor(avgReaction / 5)) : 0;
+    const finalScore = accumulatedPoints + difficultyTimeBonus + reactionBonus;
+
+    // Stop replay recording and save
+    if (replayRecorderRef.current) {
+      replayRecorderRef.current.stop();
+      const stats = {
+        trackingTime: trackingTimeRef.current.toFixed(1),
+        percentage: Math.round((trackingTimeRef.current / GAME_DURATION) * 100),
+        reactionTime: avgReaction,
+        difficulty: diffLabel,
+        difficultyBreakdown: diffTime
+      };
+      const replayData = replayRecorderRef.current.getReplayData(
+        getUserUUID(),
+        nickname,
+        finalScore,
+        stats
+      );
+      setLastReplay(replayData);
+      saveReplay(replayData);
+    }
+
+    // Submit score through anti-cheat session
+    const stats = {
+      trackingTime: trackingTimeRef.current.toFixed(1),
+      percentage: Math.round((trackingTimeRef.current / GAME_DURATION) * 100),
+      reactionTime: avgReaction,
+      difficulty: diffLabel,
+      difficultyBreakdown: diffTime
+    };
+    endGameSession(finalScore, stats, nickname).then(result => {
+      if (result?.success && result.leaderboard) {
+        setLeaderboard(result.leaderboard);
+      } else {
+        console.warn('Session submission failed:', result?.error);
+        syncLeaderboard('tracking').then(setLeaderboard);
+      }
+    });
+  };
+  endTrackingGameRef.current = endTrackingGame;
+
   useEffect(() => {
     if (gameState !== 'playing') return;
-    
+
+    const gameEndedRef = { current: false };
+
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          clearInterval(timerRef.current);
-          if (animationRef.current) cancelAnimationFrame(animationRef.current);
-          gameStateRef.current = 'finished';
-          setFinalTrackingTime(trackingTimeRef.current);
-          
-          // Calculate final reaction time
-          const avgReaction = reactionTimesRef.current.length > 0
-            ? Math.round(reactionTimesRef.current.reduce((a, b) => a + b, 0) / reactionTimesRef.current.length)
-            : 0;
-          setFinalReactionTime(avgReaction);
-          
-          // Calculate final difficulty reached
-          let diffLabel = 'Easy';
-          if (rollingAccuracyRef.current >= 85) diffLabel = 'Insane';
-          else if (rollingAccuracyRef.current >= 70) diffLabel = 'Hard';
-          else if (rollingAccuracyRef.current >= 50) diffLabel = 'Medium';
-          else if (rollingAccuracyRef.current >= 30) diffLabel = 'Easy+';
-          setFinalDifficulty(diffLabel);
-          
-          setGameState('finished');
-          
-          // Check if player cheated by resizing
-          if (cheatedRef.current) {
-            // Score is 0 if cheated - don't submit to server
-            return 0;
+          if (!gameEndedRef.current) {
+            gameEndedRef.current = true;
+            setTimeout(() => endTrackingGameRef.current(), 0);
           }
-          
-          // Aggressive difficulty-based scoring:
-          // - Base points from accumulated difficulty multiplier (main score driver)
-          // - Bonus for time spent at higher difficulties
-          // - Reaction time bonus
-          const accumulatedPoints = Math.round(pointsAccumulatedRef.current);
-          const diffTime = difficultyTimeRef.current;
-          
-          // Difficulty time bonuses (exponential scaling)
-          const difficultyTimeBonus = 
-            (diffTime.easyPlus * 5) +      // 5 pts per second at Easy+
-            (diffTime.medium * 15) +        // 15 pts per second at Medium
-            (diffTime.hard * 40) +          // 40 pts per second at Hard
-            (diffTime.insane * 100);        // 100 pts per second at Insane
-          
-          // Reaction bonus (faster = more points)
-          const reactionBonus = avgReaction > 0 ? Math.max(0, 100 - Math.floor(avgReaction / 5)) : 0;
-          
-          // Final score heavily weighted toward difficulty progression
-          const finalScore = accumulatedPoints + difficultyTimeBonus + reactionBonus;
-          
-          // Stop replay recording and save
-          if (replayRecorderRef.current) {
-            replayRecorderRef.current.stop();
-            const stats = {
-              trackingTime: trackingTimeRef.current.toFixed(1),
-              percentage: Math.round((trackingTimeRef.current / GAME_DURATION) * 100),
-              reactionTime: avgReaction,
-              difficulty: diffLabel,
-              difficultyBreakdown: diffTime
-            };
-            const replayData = replayRecorderRef.current.getReplayData(
-              getUserUUID(),
-              nickname,
-              finalScore,
-              stats
-            );
-            setLastReplay(replayData);
-            saveReplay(replayData);
-          }
-          
-          // Submit score through anti-cheat session
-          const stats = {
-            trackingTime: trackingTimeRef.current.toFixed(1),
-            percentage: Math.round((trackingTimeRef.current / GAME_DURATION) * 100),
-            reactionTime: avgReaction,
-            difficulty: diffLabel,
-            difficultyBreakdown: diffTime
-          };
-          endGameSession(finalScore, stats, nickname).then(result => {
-            if (result?.success && result.leaderboard) {
-              setLeaderboard(result.leaderboard);
-            } else {
-              console.warn('Session submission failed:', result?.error);
-              syncLeaderboard('tracking').then(setLeaderboard);
-            }
-          });
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
