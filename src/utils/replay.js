@@ -241,21 +241,18 @@ export const getUserReplays = async (userId) => {
 };
 
 // Server API functions
-const getApiUrl = () => {
-  return import.meta.env.VITE_API_URL?.replace('/api', '') || null;
-};
+const API_BASE = import.meta.env.VITE_API_URL || null;
 
 /**
  * Upload replay to server (only for top 3 scores)
  */
 export const uploadReplayToServer = async (replayData) => {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) {
+  if (!API_BASE) {
     return false; // No backend configured
   }
-  
+
   try {
-    const response = await fetch(`${apiUrl}/api/replay`, {
+    const response = await fetch(`${API_BASE}/replay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(replayData)
@@ -278,11 +275,10 @@ export const uploadReplayToServer = async (replayData) => {
  * Get replay from server by ID
  */
 export const getServerReplay = async (replayId) => {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) return null;
-  
+  if (!API_BASE) return null;
+
   try {
-    const response = await fetch(`${apiUrl}/api/replay/${replayId}`);
+    const response = await fetch(`${API_BASE}/replay/${replayId}`);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
@@ -295,11 +291,10 @@ export const getServerReplay = async (replayId) => {
  * Get all server replays for a game type (top 3 only)
  */
 export const getServerReplays = async (gameType) => {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) return [];
-  
+  if (!API_BASE) return [];
+
   try {
-    const response = await fetch(`${apiUrl}/api/replays/${gameType}`);
+    const response = await fetch(`${API_BASE}/replays/${gameType}`);
     if (!response.ok) return [];
     return await response.json();
   } catch (error) {
@@ -312,11 +307,10 @@ export const getServerReplays = async (gameType) => {
  * Check if a score qualifies for top 3 (to determine if replay should be uploaded)
  */
 export const checkIfTop3 = async (gameType, score) => {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) return false; // No backend, don't attempt upload
-  
+  if (!API_BASE) return false; // No backend, don't attempt upload
+
   try {
-    const response = await fetch(`${apiUrl}/api/leaderboard/${gameType}`);
+    const response = await fetch(`${API_BASE}/leaderboard/${gameType}`);
     if (!response.ok) return true; // If can't fetch, assume it qualifies
     
     const leaderboard = await response.json();
