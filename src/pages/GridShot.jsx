@@ -145,7 +145,7 @@ export default function GridShot() {
     };
   }, []);
 
-  const handleTargetClick = (cellIndex) => {
+  const handleTargetClick = (e, cellIndex) => {
     if (gameState.current !== 'playing') return;
     if (clickedTargets.current.has(cellIndex)) return;
     if (!activeTargets.current.has(cellIndex)) return;
@@ -161,9 +161,18 @@ export default function GridShot() {
     const cellHeight = 540 / GRID_SIZE;
     const targetCenterX = col * cellWidth + cellWidth / 2;
     const targetCenterY = row * cellHeight + cellHeight / 2;
+
+    // Get actual click position relative to game area
+    let clickX = targetCenterX;
+    let clickY = targetCenterY;
+    if (gameAreaRef.current) {
+      const rect = gameAreaRef.current.getBoundingClientRect();
+      clickX = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+      clickY = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
+    }
     clickDataRef.current.push({
-      clickX: targetCenterX,
-      clickY: targetCenterY,
+      clickX,
+      clickY,
       targetX: targetCenterX,
       targetY: targetCenterY,
       hit: true,
@@ -208,12 +217,44 @@ export default function GridShot() {
     misses.current += 1;
     score.current = Math.max(0, score.current - 50);
 
-    if (replayRecorderRef.current && gameAreaRef.current) {
+    if (gameAreaRef.current) {
       const rect = gameAreaRef.current.getBoundingClientRect();
-      replayRecorderRef.current.recordEvent('miss', {
-        x: (e.clientX - rect.left) / rect.width * GAME_WIDTH,
-        y: (e.clientY - rect.top) / rect.height * GAME_HEIGHT
+      const missX = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+      const missY = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
+
+      // Find nearest active target for miss offset analysis
+      let nearestTargetX = missX;
+      let nearestTargetY = missY;
+      let nearestDist = Infinity;
+      activeTargets.current.forEach(cellIndex => {
+        const row = Math.floor(cellIndex / GRID_SIZE);
+        const col = cellIndex % GRID_SIZE;
+        const cellWidth = 960 / GRID_SIZE;
+        const cellHeight = 540 / GRID_SIZE;
+        const cx = col * cellWidth + cellWidth / 2;
+        const cy = row * cellHeight + cellHeight / 2;
+        const dist = Math.sqrt((missX - cx) ** 2 + (missY - cy) ** 2);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestTargetX = cx;
+          nearestTargetY = cy;
+        }
       });
+
+      clickDataRef.current.push({
+        clickX: missX,
+        clickY: missY,
+        targetX: nearestTargetX,
+        targetY: nearestTargetY,
+        hit: false,
+      });
+
+      if (replayRecorderRef.current) {
+        replayRecorderRef.current.recordEvent('miss', {
+          x: missX,
+          y: missY
+        });
+      }
     }
 
     render();
@@ -342,7 +383,7 @@ export default function GridShot() {
                   >
                     {activeTargets.current.has(index) && (
                       <button
-                        onMouseDown={() => handleTargetClick(index)}
+                        onMouseDown={(e) => handleTargetClick(e, index)}
                         style={{
                           width: '80px',
                           height: '80px',
@@ -393,9 +434,9 @@ export default function GridShot() {
         >
           <PostGameAnalytics
             gameType="gridshot"
-            stats={{ score: score.current, accuracy, hits: hits.current }}
+            stats={{ score: score.current, accuracy, hits: hits.current, avgTime: averageTime }}
             clickData={clickData}
-            targetSize={100}
+            targetSize={80}
             gameWidth={960}
           />
         </GameFinished>

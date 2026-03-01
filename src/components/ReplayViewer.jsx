@@ -249,32 +249,45 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
       const gridSize = 3;
 
       return (
-        <div
-          className="absolute inset-0 grid gap-4 p-4"
-          style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
-        >
-          {Array.from({ length: 9 }).map((_, i) => {
-            const isActive = targets.some(t => t.cellIndex === i);
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${gridSize}, 100px)`,
+              gap: '1rem',
+              padding: '1rem',
+            }}
+          >
+            {Array.from({ length: 9 }).map((_, i) => {
+              const isActive = targets.some(t => t.cellIndex === i);
 
-            return (
-              <div
-                key={i}
-                className="bg-slate-700/30 rounded-lg flex items-center justify-center"
-              >
-                {isActive && (
-                  <div
-                    className="w-[80%] h-[80%] rounded-full flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(to bottom right, #f59e0b, #ef4444)',
-                      boxShadow: '0 10px 25px rgba(245, 158, 11, 0.4)',
-                    }}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-white" />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-center rounded-lg"
+                  style={{
+                    width: '100px',
+                    height: '100px',
+                    backgroundColor: 'rgba(51, 65, 85, 0.3)',
+                  }}
+                >
+                  {isActive && (
+                    <div
+                      className="rounded-full flex items-center justify-center"
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        background: 'linear-gradient(to bottom right, #f59e0b, #ef4444)',
+                        boxShadow: '0 10px 25px rgba(245, 158, 11, 0.4)',
+                      }}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
