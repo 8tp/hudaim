@@ -88,44 +88,8 @@ const analyzeSpatialPerformance = (clickData, gameWidth = 960) => {
   };
 };
 
-// Analyze tracking performance
-const analyzeTrackingPerformance = (trackingData) => {
-  if (!trackingData || trackingData.length === 0) {
-    return { overshootRate: 0, undershootRate: 0, tendency: 'balanced' };
-  }
-
-  let overshoots = 0;
-  let undershoots = 0;
-  let onTarget = 0;
-
-  trackingData.forEach(sample => {
-    const distance = Math.sqrt(
-      Math.pow(sample.cursorX - sample.targetX, 2) +
-      Math.pow(sample.cursorY - sample.targetY, 2)
-    );
-
-    if (sample.velocity) {
-      const dotProduct = sample.velocity.x * (sample.targetX - sample.cursorX) +
-                        sample.velocity.y * (sample.targetY - sample.cursorY);
-      if (dotProduct < 0 && distance > 30) overshoots++;
-      else if (dotProduct > 0 && distance > 30) undershoots++;
-      else onTarget++;
-    }
-  });
-
-  const total = overshoots + undershoots + onTarget;
-  const overshootRate = total > 0 ? Math.round((overshoots / total) * 100) : 0;
-  const undershootRate = total > 0 ? Math.round((undershoots / total) * 100) : 0;
-
-  let tendency = 'balanced';
-  if (overshootRate > undershootRate + 15) tendency = 'overshoot';
-  else if (undershootRate > overshootRate + 15) tendency = 'undershoot';
-
-  return { overshootRate, undershootRate, tendency };
-};
-
 // Generate insights
-const generateInsights = (stats, gameType, clickData, spatialData, trackingData) => {
+const generateInsights = (stats, gameType, clickData, spatialData) => {
   const insights = [];
 
   if (stats.score) {
@@ -170,18 +134,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
       icon: Target,
       title: 'Click Bias Detected',
       text: `Your clicks tend to land ${clickData.bias} of center. Adjust your aim slightly.`
-    });
-  }
-
-  if (trackingData?.tendency && trackingData.tendency !== 'balanced') {
-    const tip = trackingData.tendency === 'overshoot'
-      ? 'Try reducing your sensitivity or smoothing your movements.'
-      : 'Try being more aggressive with your cursor movements.';
-    insights.push({
-      type: 'neutral',
-      icon: Zap,
-      title: `Tendency to ${trackingData.tendency.charAt(0).toUpperCase() + trackingData.tendency.slice(1)}`,
-      text: tip
     });
   }
 
@@ -286,21 +238,18 @@ export default function PostGameAnalytics({
   gameType,
   stats,
   clickData = [],
-  trackingData = [],
   targetSize = 60,
   gameWidth = 960,
 }) {
   const clickAnalysis = useMemo(() => analyzeClickAccuracy(clickData), [clickData]);
   const spatialAnalysis = useMemo(() => analyzeSpatialPerformance(clickData, gameWidth), [clickData, gameWidth]);
-  const trackingAnalysis = useMemo(() => analyzeTrackingPerformance(trackingData), [trackingData]);
 
   const insights = useMemo(() =>
-    generateInsights(stats, gameType, clickAnalysis, spatialAnalysis, trackingAnalysis),
-    [stats, gameType, clickAnalysis, spatialAnalysis, trackingAnalysis]
+    generateInsights(stats, gameType, clickAnalysis, spatialAnalysis),
+    [stats, gameType, clickAnalysis, spatialAnalysis]
   );
 
   const showHeatmap = ['aim', 'gridshot', 'precision'].includes(gameType) && clickData.length > 0;
-  const showTrackingStats = ['tracking', 'switching'].includes(gameType);
 
   return (
     <div className="w-full mt-6">
@@ -348,35 +297,6 @@ export default function PostGameAnalytics({
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Tracking/Switching stats */}
-      {showTrackingStats && trackingData.length > 0 && (
-        <div className="section-card mb-4">
-          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-            <Zap size={18} className="text-cyan-500" />
-            Movement Analysis
-          </h3>
-          <div className="flex justify-center gap-8">
-            <div className="text-center">
-              <div className="text-xs text-slate-500">OVERSHOOT</div>
-              <div className={`text-2xl font-semibold ${trackingAnalysis.overshootRate > 30 ? 'text-red-500' : 'text-green-500'}`}>
-                {trackingAnalysis.overshootRate}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-slate-500">UNDERSHOOT</div>
-              <div className={`text-2xl font-semibold ${trackingAnalysis.undershootRate > 30 ? 'text-red-500' : 'text-green-500'}`}>
-                {trackingAnalysis.undershootRate}%
-              </div>
-            </div>
-          </div>
-          {trackingAnalysis.tendency !== 'balanced' && (
-            <p className="text-center text-slate-400 text-sm mt-3">
-              You tend to <span className="text-amber-400">{trackingAnalysis.tendency}</span> your targets
-            </p>
-          )}
         </div>
       )}
 

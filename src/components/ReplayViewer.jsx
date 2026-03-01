@@ -30,6 +30,15 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
   const animationRef = useRef(null);
   const hasAutoPlayedRef = useRef(false);
 
+  // Escape key to close
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleFrame = useCallback((frame) => {
     setCursorPos({ x: frame.mx, y: frame.my });
     setCurrentTime(frame.t);
@@ -274,19 +283,19 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000]" onClick={onClose}>
-      <div className="animate-fade-in-scale bg-slate-800 rounded-2xl p-6 max-w-[1100px] w-[95%] max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+      <div className="animate-fade-in-scale bg-slate-800 rounded-2xl p-4 sm:p-6 max-w-[1100px] w-[95%] max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div>
-            <div className="text-xl font-bold text-white">
+            <div className="text-lg sm:text-xl font-bold text-white">
               Replay: {replay.nickname} - {replay.score} pts
             </div>
             <div className="text-sm text-slate-400 mt-1">
               {replay.gameType.charAt(0).toUpperCase() + replay.gameType.slice(1)} &bull; {formatTime(replay.duration)} duration
             </div>
           </div>
-          <button className="p-2 rounded-lg text-slate-400 hover:text-white transition-colors" onClick={onClose}>
-            <X size={24} />
+          <button className="btn-secondary p-2" onClick={onClose} aria-label="Close replay">
+            <X size={20} />
           </button>
         </div>
 
@@ -313,11 +322,11 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
 
         {/* Controls */}
         <div className="flex items-center gap-4 mt-4 p-4 bg-slate-900/60 rounded-lg">
-          <button className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300 transition-colors" onClick={togglePlay}>
+          <button className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300 transition-colors" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}>
             {isPlaying ? <Pause size={24} /> : <Play size={24} />}
           </button>
 
-          <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-700/50 text-slate-400 hover:text-white transition-colors" onClick={resetReplay}>
+          <button className="btn-secondary p-2" onClick={resetReplay} aria-label="Reset replay">
             <RotateCcw size={20} />
           </button>
 
@@ -354,7 +363,7 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-8 mt-4 p-4 bg-slate-900/60 rounded-lg">
+        <div className="flex flex-wrap gap-6 sm:gap-8 mt-4 p-4 bg-slate-900/60 rounded-lg">
           <div className="flex flex-col gap-1">
             <span className="text-xs text-slate-500 uppercase">Score</span>
             <span className="text-lg font-bold text-white">{currentScore || replay.score}</span>

@@ -26,18 +26,6 @@ export const getUserUUID = () => {
   }
 };
 
-// Reset all leaderboards (for admin/testing purposes)
-export const resetAllLeaderboards = () => {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    console.log('All leaderboards have been reset');
-    return true;
-  } catch (error) {
-    console.error('Failed to reset leaderboards:', error);
-    return false;
-  }
-};
-
 // Check if user has completed initial setup
 export const hasCompletedSetup = () => {
   try {
@@ -130,74 +118,6 @@ const saveLocalLeaderboard = (gameType, entries) => {
   }
 };
 
-export const addScore = (gameType, score, stats = {}) => {
-  const uuid = getUserUUID();
-  const nickname = getNickname();
-  const newEntry = {
-    uuid,
-    nickname,
-    score,
-    stats,
-    date: new Date().toISOString(),
-  };
-  
-  // Save locally first
-  const localResult = addScoreLocal(gameType, newEntry);
-  
-  // Sync to server in background
-  syncScoreToServer(gameType, uuid, nickname, score, stats).catch(() => {});
-  
-  return localResult;
-};
-
-const addScoreLocal = (gameType, newEntry) => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    const leaderboard = data ? JSON.parse(data) : {};
-    
-    if (!leaderboard[gameType]) {
-      leaderboard[gameType] = [];
-    }
-    
-    // Find by UUID instead of nickname
-    const existingIndex = leaderboard[gameType].findIndex(e => e.uuid === newEntry.uuid);
-    
-    if (existingIndex >= 0) {
-      if (newEntry.score > leaderboard[gameType][existingIndex].score) {
-        leaderboard[gameType][existingIndex] = newEntry;
-      } else {
-        // Update nickname even if score isn't better
-        leaderboard[gameType][existingIndex].nickname = newEntry.nickname;
-      }
-    } else {
-      leaderboard[gameType].push(newEntry);
-    }
-    
-    leaderboard[gameType] = leaderboard[gameType]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(leaderboard));
-    return leaderboard[gameType];
-  } catch {
-    return [];
-  }
-};
-
-const syncScoreToServer = async (gameType, uuid, nickname, score, stats) => {
-  if (!API_BASE) return; // Skip if no backend
-  
-  try {
-    await fetch(`${API_BASE}/leaderboard/${gameType}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uuid, nickname, score, stats }),
-    });
-  } catch {
-    // Server not available
-  }
-};
-
 export const getNickname = () => {
   try {
     return localStorage.getItem(NICKNAME_KEY) || 'Player';
@@ -206,19 +126,24 @@ export const getNickname = () => {
   }
 };
 
+let nicknameSyncTimer = null;
+
 export const setNickname = (nickname) => {
   try {
     const oldNickname = getNickname();
     const sanitized = nickname.trim().slice(0, 20) || 'Player';
     localStorage.setItem(NICKNAME_KEY, sanitized);
-    
+
     // Update all local leaderboard entries with new nickname
     if (oldNickname !== sanitized) {
       updateAllNicknames(sanitized);
-      // Sync nickname change to server
-      syncNicknameChange(sanitized).catch(() => {});
+      // Debounce server sync — only fires after 500ms of no changes
+      clearTimeout(nicknameSyncTimer);
+      nicknameSyncTimer = setTimeout(() => {
+        syncNicknameChange(sanitized).catch(() => {});
+      }, 500);
     }
-    
+
     return sanitized;
   } catch {
     return 'Player';
@@ -289,7 +214,3 @@ export const clearLeaderboard = (gameType) => {
   }
 };
 
-// Function to refresh leaderboard from server
-export const refreshLeaderboard = async (gameType) => {
-  return syncLeaderboard(gameType);
-};

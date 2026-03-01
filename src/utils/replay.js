@@ -1,7 +1,7 @@
 /**
  * Replay Recording and Playback System
  * 
- * Records mouse movements and game events at 30 FPS for replay functionality.
+ * Records mouse movements and game events at 60 FPS for replay functionality.
  * Stores replays locally in IndexedDB and uploads top 3 scores to server.
  */
 
@@ -79,7 +79,7 @@ export class ReplayRecorder {
     
     const elapsed = performance.now() - this.startTime;
     
-    // Capture frame at 30 FPS intervals
+    // Capture frame at target FPS intervals
     if (elapsed - this.lastFrameTime >= FRAME_INTERVAL) {
       this._captureFrame(elapsed);
     }
@@ -193,50 +193,6 @@ export const getLocalReplay = async (replayId) => {
   } catch (error) {
     console.error('Failed to get local replay:', error);
     return null;
-  }
-};
-
-/**
- * Delete a local replay
- */
-export const deleteLocalReplay = async (replayId) => {
-  try {
-    const database = await openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(replayId);
-      
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => reject(request.error);
-    });
-  } catch (error) {
-    console.error('Failed to delete local replay:', error);
-    return false;
-  }
-};
-
-/**
- * Get user's replays
- */
-export const getUserReplays = async (userId) => {
-  try {
-    const database = await openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('userId');
-      const request = index.getAll(userId);
-      
-      request.onsuccess = () => {
-        const replays = request.result.sort((a, b) => b.timestamp - a.timestamp);
-        resolve(replays);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  } catch (error) {
-    console.error('Failed to get user replays:', error);
-    return [];
   }
 };
 

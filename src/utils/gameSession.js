@@ -71,8 +71,3 @@ export const endGameSession = async (score, stats, nickname) => {
   }
 };
 
-export const getCurrentSession = () => currentSession;
-
-export const clearSession = () => {
-  currentSession = null;
-};

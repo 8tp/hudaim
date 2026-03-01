@@ -69,7 +69,7 @@ export default function GameFinished({
 
         <div className="flex gap-4 justify-center mt-6 animate-fade-in-up" style={{ animationDelay: '320ms' }}>
           <button
-            onMouseDown={onPlayAgain}
+            onClick={onPlayAgain}
             className={`btn-primary bg-gradient-to-r ${gradientClasses}`}
           >
             <RotateCcw size={20} />

@@ -305,7 +305,7 @@ export default function GridShot() {
                 Click targets as they appear in the grid. You have {GAME_DURATION} seconds.
                 Missing clicks will cost you points!
               </p>
-              <button onMouseDown={(e) => { e.stopPropagation(); startGame(); }} className="btn-primary bg-gradient-to-r from-amber-500 to-red-500">
+              <button onClick={startGame} className="btn-primary bg-gradient-to-r from-amber-500 to-red-500">
                 <Play size={20} />
                 Start Game
               </button>

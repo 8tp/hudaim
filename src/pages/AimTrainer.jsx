@@ -297,7 +297,7 @@ export default function AimTrainer() {
                 Click on {TOTAL_TARGETS} targets as quickly and accurately as possible.
                 Missing targets will cost you points!
               </p>
-              <button onMouseDown={startGame} className="btn-primary bg-gradient-to-r from-cyan-500 to-blue-500">
+              <button onClick={startGame} className="btn-primary bg-gradient-to-r from-cyan-500 to-blue-500">
                 <Play size={20} />
                 Start Game
               </button>

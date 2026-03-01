@@ -50,13 +50,14 @@ export default function Home() {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Hero */}
-      <section className="relative py-20 px-4 text-center bg-gradient-to-b from-cyan-500/10 to-transparent">
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 text-center bg-gradient-to-b from-cyan-500/10 to-transparent">
         <div className="animate-fade-in-up flex items-center justify-center gap-3 mb-6">
-          <Target size={48} className="text-cyan-400" />
-          <h1 className="text-6xl font-bold text-gradient-hero">HudAim</h1>
+          <Target size={48} className="text-cyan-400 hidden sm:block" />
+          <Target size={36} className="text-cyan-400 sm:hidden" />
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gradient-hero">HudAim</h1>
         </div>
 
-        <p className="animate-fade-in-up text-xl text-slate-300 mb-8 max-w-xl mx-auto" style={{ animationDelay: '80ms' }}>
+        <p className="animate-fade-in-up text-base sm:text-lg md:text-xl text-slate-300 mb-8 max-w-xl mx-auto" style={{ animationDelay: '80ms' }}>
           Train your reflexes and improve your aim with our collection of precision training games.
           Track your progress and compete with yourself.
         </p>

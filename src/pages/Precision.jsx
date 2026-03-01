@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Crosshair, RotateCcw, Play } from 'lucide-react';
+import { Focus, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
 import { startGameSession, endGameSession } from '../utils/gameSession';
@@ -258,7 +258,7 @@ export default function Precision() {
       <div className="game-header">
         <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <Crosshair size={24} className="text-purple-500" />
+            <Focus size={24} className="text-purple-500" />
             <h1 className="text-xl font-bold text-white">Precision</h1>
           </div>
 
@@ -290,13 +290,13 @@ export default function Precision() {
         <FixedGameArea ref={containerRef} onMouseDown={handleMissClick} onMouseMove={handleMouseMove} cursor="crosshair">
           {gameState === 'idle' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in-up">
-              <Crosshair size={80} className="text-purple-500 mb-6" />
+              <Focus size={80} className="text-purple-500 mb-6" />
               <h2 className="text-3xl font-bold text-white mb-4">Precision</h2>
               <p className="text-slate-400 mb-8 text-center max-w-sm px-4">
                 Hit small targets with maximum accuracy for 60 seconds.
                 4 targets appear at once. Score = Kills x Accuracy!
               </p>
-              <button onMouseDown={startGame} className="btn-primary bg-gradient-to-r from-purple-500 to-pink-500">
+              <button onClick={startGame} className="btn-primary bg-gradient-to-r from-purple-500 to-pink-500">
                 <Play size={20} />
                 Start Game
               </button>

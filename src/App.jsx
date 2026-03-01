@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import NicknamePrompt from './components/NicknamePrompt';
 import Home from './pages/Home';
@@ -42,6 +42,15 @@ function App() {
             <Route path="/switching" element={<Switching />} />
             <Route path="/precision" element={<Precision />} />
             <Route path="/leaderboards" element={<Leaderboards />} />
+            <Route path="*" element={
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <p className="text-7xl font-bold text-slate-600 mb-4">404</p>
+                <p className="text-xl text-slate-400 mb-6">Page not found</p>
+                <Link to="/" className="btn-primary bg-gradient-to-r from-cyan-500 to-blue-500 no-underline">
+                  Back to Home
+                </Link>
+              </div>
+            } />
           </Routes>
         </main>
       </div>

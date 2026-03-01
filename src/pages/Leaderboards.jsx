@@ -5,12 +5,12 @@ import { getServerReplays, getServerReplay, getLocalReplays, getLocalReplay } fr
 import ReplayViewer from '../components/ReplayViewer';
 
 const GAME_TYPES = [
-  { id: 'aim', name: 'Aim Trainer', color: 'cyan' },
-  { id: 'tracking', name: 'Tracking', color: 'cyan' },
-  { id: 'switching', name: 'Switching', color: 'sky' },
-  { id: 'precision', name: 'Precision', color: 'purple' },
-  { id: 'gridshot', name: 'Grid Shot', color: 'amber' },
-  { id: 'reaction', name: 'Reaction', color: 'yellow' },
+  { id: 'aim', name: 'Aim Trainer' },
+  { id: 'tracking', name: 'Tracking' },
+  { id: 'switching', name: 'Switching' },
+  { id: 'precision', name: 'Precision' },
+  { id: 'gridshot', name: 'Grid Shot' },
+  { id: 'reaction', name: 'Reaction' },
 ];
 
 const getRankBadge = (index) => {
@@ -175,7 +175,11 @@ export default function Leaderboards() {
                             </button>
                           )}
                         </div>
-                        <span className="text-yellow-400 font-bold text-lg">{entry.score}</span>
+                        <span className="text-yellow-400 font-bold text-lg">
+                          {selectedGame.id === 'reaction' && entry.stats?.averageTime
+                            ? `${entry.stats.averageTime}ms`
+                            : entry.score}
+                        </span>
                       </div>
                       {statItems && statItems.length > 0 && (
                         <div className="flex gap-4 ml-10 mt-1 text-sm">

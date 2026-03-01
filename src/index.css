@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ── CSS Custom Properties ── */
@@ -13,9 +14,6 @@
   --color-text-dim: #64748b;
   --color-border: #334155;
   --color-border-subtle: rgba(51, 65, 85, 0.5);
-  --color-gold: #facc15;
-  --color-silver: #94a3b8;
-  --color-bronze: #cd7f32;
 }
 
 /* ── Base Reset (in layer so utilities can override) ── */
@@ -195,7 +193,7 @@
     font-size: 1rem;
     font-weight: 600;
     color: white;
-    background: linear-gradient(to right, var(--tw-gradient-stops));
+    background: linear-gradient(to right, #22d3ee, #3b82f6);
     transition: transform 0.15s;
     cursor: pointer;
     border: none;
@@ -334,5 +332,24 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-scale,
+  .animate-slide-down,
+  .animate-slide-in-right,
+  .animate-score-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .animate-pulse-subtle,
+  .animate-glow-pulse,
+  .skeleton {
+    animation: none !important;
   }
 }

@@ -78,7 +78,6 @@ export default function Tracking() {
   const currentPatternRef = useRef(STRAFE_PATTERNS.SMOOTH);
   const patternFrameRef = useRef(0);
   const strafeDirectionRef = useRef(1);
-  const stutterPauseRef = useRef(false);
   const zigzagPhaseRef = useRef(0);
 
   const lastStrafeChangeRef = useRef(0);
@@ -93,8 +92,6 @@ export default function Tracking() {
   const pointsAccumulatedRef = useRef(0);
   const difficultyTimeRef = useRef({ easy: 0, easyPlus: 0, medium: 0, hard: 0, insane: 0 });
 
-  const initialBoundsRef = useRef(null);
-  const cheatedRef = useRef(false);
 
   const replayRecorderRef = useRef(null);
   const [lastReplay, setLastReplay] = useState(null);
@@ -315,8 +312,6 @@ export default function Tracking() {
     setTimeLeft(0);
     setGameState('finished');
 
-    if (cheatedRef.current) return;
-
     const accumulatedPoints = Math.round(pointsAccumulatedRef.current);
     const diffTime = difficultyTimeRef.current;
 
@@ -395,12 +390,8 @@ export default function Tracking() {
       console.error('Failed to start game session');
     }
 
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      boundsRef.current = { width: rect.width, height: rect.height };
-      targetPosRef.current = { x: rect.width / 2 - TARGET_SIZE / 2, y: rect.height / 2 - TARGET_SIZE / 2 };
-      initialBoundsRef.current = { width: rect.width, height: rect.height };
-    }
+    boundsRef.current = { width: GAME_WIDTH, height: GAME_HEIGHT };
+    targetPosRef.current = { x: GAME_WIDTH / 2 - TARGET_SIZE / 2, y: GAME_HEIGHT / 2 - TARGET_SIZE / 2 };
 
     gameStateRef.current = 'playing';
     trackingTimeRef.current = 0;
@@ -410,7 +401,6 @@ export default function Tracking() {
     currentPatternRef.current = STRAFE_PATTERNS.SMOOTH;
     patternFrameRef.current = 0;
     strafeDirectionRef.current = 1;
-    stutterPauseRef.current = false;
     zigzagPhaseRef.current = 0;
     lastStrafeChangeRef.current = 0;
     wasOnTargetBeforeStrafeRef.current = false;
@@ -422,7 +412,7 @@ export default function Tracking() {
 
     pointsAccumulatedRef.current = 0;
     difficultyTimeRef.current = { easy: 0, easyPlus: 0, medium: 0, hard: 0, insane: 0 };
-    cheatedRef.current = false;
+
 
     replayRecorderRef.current = new ReplayRecorder('tracking', {
       gameDuration: GAME_DURATION,
@@ -472,8 +462,6 @@ export default function Tracking() {
     accuracySamplesRef.current = [];
     pointsAccumulatedRef.current = 0;
     difficultyTimeRef.current = { easy: 0, easyPlus: 0, medium: 0, hard: 0, insane: 0 };
-    cheatedRef.current = false;
-    initialBoundsRef.current = null;
     setGameState('idle');
     setTimeLeft(GAME_DURATION);
     setFinalTrackingTime(0);
@@ -530,7 +518,7 @@ export default function Tracking() {
         <FixedGameArea
           ref={containerRef}
           onMouseMove={handleMouseMove}
-          cursor="none"
+          cursor={gameState === 'playing' ? 'none' : 'default'}
         >
           {gameState === 'idle' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in-up cursor-default">
@@ -630,7 +618,7 @@ export default function Tracking() {
               trackingTime: finalTrackingTime
             }}
             clickData={[]}
-            trackingData={[]}
+
             gameWidth={GAME_WIDTH}
           />
         </GameFinished>

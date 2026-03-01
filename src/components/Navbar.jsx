@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Target, Zap, Home, Grid3X3, Move, Crosshair, Settings as SettingsIcon, Focus, Trophy, Menu, X } from 'lucide-react';
 import Settings from './Settings';
@@ -24,6 +24,11 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   return (
     <>
       <nav className="sticky top-0 z-50 bg-slate-800/80 backdrop-blur-md border-b border-slate-700">
@@ -41,7 +46,7 @@ export default function Navbar() {
                 <Link
                   key={to}
                   to={to}
-                  className={`px-2.5 py-1.5 rounded-md no-underline text-[13px] font-medium transition-colors
+                  className={`px-2.5 py-1.5 rounded-md no-underline text-sm font-medium transition-colors
                     ${isActive(to)
                       ? 'bg-cyan-400/15 text-cyan-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-700/40'
@@ -56,7 +61,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-1 ml-auto">
               <Link
                 to="/leaderboards"
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md no-underline text-[13px] font-medium transition-colors
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md no-underline text-sm font-medium transition-colors
                   ${isActive('/leaderboards')
                     ? 'bg-cyan-400/15 text-cyan-400'
                     : 'text-slate-400 hover:text-white hover:bg-slate-700/40'
@@ -69,7 +74,7 @@ export default function Navbar() {
               <button
                 className="flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/40 transition-colors"
                 onClick={() => setSettingsOpen(true)}
-                title="Settings"
+                aria-label="Settings"
               >
                 <SettingsIcon size={16} />
               </button>
@@ -79,6 +84,8 @@ export default function Navbar() {
             <button
               className="md:hidden flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white"
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>

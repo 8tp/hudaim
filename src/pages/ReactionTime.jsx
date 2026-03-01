@@ -175,6 +175,12 @@ export default function ReactionTime() {
     setAttempts(0);
   };
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const averageTime = results.length > 0
     ? Math.round(results.reduce((a, b) => a + b, 0) / results.length)
     : null;
@@ -255,7 +261,7 @@ export default function ReactionTime() {
                 <Trophy size={20} className="text-yellow-400" />
                 Your Results
               </h2>
-              <button onMouseDown={resetGame} className="btn-secondary">
+              <button onClick={resetGame} className="btn-secondary">
                 <RotateCcw size={16} />
                 Reset
               </button>

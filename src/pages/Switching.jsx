@@ -402,7 +402,7 @@ export default function Switching() {
           cursor="crosshair"
         >
           {gameState === 'idle' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 animate-fade-in-up">
+            <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in-up">
               <Crosshair size={80} className="text-cyan-500 mb-6" />
               <h2 className="text-3xl font-bold text-white mb-4">Target Switching</h2>
               <p className="text-slate-400 mb-8 text-center max-w-lg leading-relaxed">
@@ -479,7 +479,7 @@ export default function Switching() {
             gameType="switching"
             stats={{ score: kills * 100, kills, avgSwitchTime }}
             clickData={[]}
-            trackingData={[]}
+
             gameWidth={GAME_WIDTH}
           />
         </GameFinished>
