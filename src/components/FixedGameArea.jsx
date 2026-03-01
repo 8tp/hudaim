@@ -5,35 +5,16 @@ import { forwardRef } from 'react';
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
 
-const styles = {
-  wrapper: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0a0f1a',
-    padding: '1rem',
-    overflow: 'hidden',
-  },
-  gameArea: {
-    width: `${GAME_WIDTH}px`,
-    height: `${GAME_HEIGHT}px`,
-    position: 'relative',
-    backgroundColor: '#0f172a',
-    borderRadius: '0.5rem',
-    border: '2px solid #334155',
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
-};
-
 const FixedGameArea = forwardRef(({ children, style, onMouseMove, onMouseDown, cursor = 'crosshair' }, ref) => {
   return (
-    <div style={styles.wrapper}>
+    <div className="flex-1 flex items-center justify-center bg-[#0a0f1a] p-4 overflow-hidden">
       <div
         ref={ref}
+        className="relative rounded-lg border-2 border-slate-700 overflow-hidden shrink-0"
         style={{
-          ...styles.gameArea,
+          width: `${GAME_WIDTH}px`,
+          height: `${GAME_HEIGHT}px`,
+          backgroundColor: '#0f172a',
           cursor,
           ...style,
         }}

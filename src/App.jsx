@@ -12,21 +12,6 @@ import Precision from './pages/Precision';
 import Leaderboards from './pages/Leaderboards';
 import { hasCompletedSetup, completeSetup, initializeLeaderboards } from './utils/leaderboard';
 
-const appStyles = {
-  container: {
-    height: '100%',
-    backgroundColor: '#0f172a',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  main: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-};
-
 function App() {
   const [showNicknamePrompt, setShowNicknamePrompt] = useState(() => !hasCompletedSetup());
 
@@ -42,12 +27,12 @@ function App() {
 
   return (
     <Router>
-      <div style={appStyles.container}>
+      <div className="h-full bg-slate-900 flex flex-col">
         {showNicknamePrompt && (
           <NicknamePrompt onComplete={handleNicknameComplete} />
         )}
         <Navbar />
-        <main style={appStyles.main}>
+        <main className="flex-1 flex flex-col overflow-hidden">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/reaction" element={<ReactionTime />} />

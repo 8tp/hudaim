@@ -9,114 +9,6 @@ const getHeatmapColor = (intensity) => {
   return `rgba(239, 68, 68, ${0.6 + intensity * 0.4})`; // Red
 };
 
-const styles = {
-  container: {
-    width: '100%',
-    marginTop: '1.5rem',
-  },
-  section: {
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
-    borderRadius: '0.75rem',
-    padding: '1.25rem',
-    marginBottom: '1rem',
-    border: '1px solid #334155',
-  },
-  sectionTitle: {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: '1rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  heatmapContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '1rem',
-  },
-  heatmapWrapper: {
-    position: 'relative',
-    width: '200px',
-    height: '200px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    border: '2px solid #334155',
-    overflow: 'hidden',
-  },
-  heatmapCenter: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '20px',
-    height: '20px',
-    borderRadius: '50%',
-    backgroundColor: '#ef4444',
-    border: '2px solid white',
-    zIndex: 10,
-  },
-  heatmapDot: {
-    position: 'absolute',
-    borderRadius: '50%',
-    transform: 'translate(-50%, -50%)',
-  },
-  insightsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '0.75rem',
-  },
-  insightCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: '0.5rem',
-    padding: '0.875rem',
-    border: '1px solid #334155',
-  },
-  insightHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.5rem',
-  },
-  insightTitle: {
-    fontSize: '0.75rem',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  insightValue: {
-    fontSize: '1.125rem',
-    fontWeight: '600',
-    color: 'white',
-  },
-  insightDescription: {
-    fontSize: '0.8rem',
-    color: '#64748b',
-    marginTop: '0.25rem',
-  },
-  positive: { color: '#22c55e' },
-  negative: { color: '#ef4444' },
-  neutral: { color: '#f59e0b' },
-  legendContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '1rem',
-    marginTop: '0.5rem',
-    fontSize: '0.75rem',
-    color: '#94a3b8',
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.25rem',
-  },
-  legendDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-  },
-};
-
 // Analyze click positions relative to target centers
 const analyzeClickAccuracy = (clickData) => {
   if (!clickData || clickData.length === 0) {
@@ -131,14 +23,12 @@ const analyzeClickAccuracy = (clickData) => {
   const avgX = offsets.reduce((sum, o) => sum + o.x, 0) / offsets.length;
   const avgY = offsets.reduce((sum, o) => sum + o.y, 0) / offsets.length;
 
-  // Calculate spread (standard deviation)
   const spread = Math.sqrt(
     offsets.reduce((sum, o) => sum + Math.pow(o.x - avgX, 2) + Math.pow(o.y - avgY, 2), 0) / offsets.length
   );
 
-  // Determine bias direction
   let bias = 'center';
-  const threshold = 5; // pixels
+  const threshold = 5;
   if (Math.abs(avgX) > threshold || Math.abs(avgY) > threshold) {
     const angle = Math.atan2(avgY, avgX) * (180 / Math.PI);
     if (angle >= -22.5 && angle < 22.5) bias = 'right';
@@ -154,20 +44,17 @@ const analyzeClickAccuracy = (clickData) => {
   return { avgOffset: { x: avgX, y: avgY }, spread, bias, offsets };
 };
 
-// Analyze spatial performance (overshoot vs undershoot on horizontal axis)
+// Analyze spatial performance
 const analyzeSpatialPerformance = (clickData, gameWidth = 960) => {
   if (!clickData || clickData.length === 0) {
     return { leftBias: 0, rightBias: 0, overshootLeft: 0, overshootRight: 0, weakness: null };
   }
 
-  // Calculate horizontal offset tendencies
   let leftOffsets = [];
   let rightOffsets = [];
-  
+
   clickData.forEach(click => {
     const offsetX = click.clickX - click.targetX;
-    
-    // Categorize by which side of screen the target was on
     if (click.targetX < gameWidth / 2) {
       leftOffsets.push(offsetX);
     } else {
@@ -175,41 +62,33 @@ const analyzeSpatialPerformance = (clickData, gameWidth = 960) => {
     }
   });
 
-  // Calculate average offsets and convert to percentages
   const calcBias = (offsets) => {
     if (offsets.length === 0) return { bias: 0, overshoot: 0 };
     const avgOffset = offsets.reduce((sum, o) => sum + o, 0) / offsets.length;
     const overshoots = offsets.filter(o => Math.abs(o) > 10).length;
     const overshootRate = Math.round((overshoots / offsets.length) * 100);
-    
-    // Positive offset = clicking to the right (overshoot if target on left)
-    // Negative offset = clicking to the left (undershoot if target on right)
-    return { 
-      bias: Math.round(avgOffset), 
-      overshoot: overshootRate 
-    };
+    return { bias: Math.round(avgOffset), overshoot: overshootRate };
   };
 
   const leftAnalysis = calcBias(leftOffsets);
   const rightAnalysis = calcBias(rightOffsets);
 
-  // Determine weakness based on consistent bias
   let weakness = null;
   if (leftAnalysis.bias > 15) weakness = 'overshooting left targets';
   else if (leftAnalysis.bias < -15) weakness = 'undershooting left targets';
   if (rightAnalysis.bias > 15) weakness = weakness ? `${weakness} and overshooting right targets` : 'overshooting right targets';
   else if (rightAnalysis.bias < -15) weakness = weakness ? `${weakness} and undershooting right targets` : 'undershooting right targets';
 
-  return { 
-    leftBias: leftAnalysis.bias, 
+  return {
+    leftBias: leftAnalysis.bias,
     rightBias: rightAnalysis.bias,
     overshootLeft: leftAnalysis.overshoot,
     overshootRight: rightAnalysis.overshoot,
-    weakness 
+    weakness
   };
 };
 
-// Analyze tracking performance (overshoot vs undershoot)
+// Analyze tracking performance
 const analyzeTrackingPerformance = (trackingData) => {
   if (!trackingData || trackingData.length === 0) {
     return { overshootRate: 0, undershootRate: 0, tendency: 'balanced' };
@@ -224,9 +103,8 @@ const analyzeTrackingPerformance = (trackingData) => {
       Math.pow(sample.cursorX - sample.targetX, 2) +
       Math.pow(sample.cursorY - sample.targetY, 2)
     );
-    
+
     if (sample.velocity) {
-      // If cursor is moving past target, it's an overshoot
       const dotProduct = sample.velocity.x * (sample.targetX - sample.cursorX) +
                         sample.velocity.y * (sample.targetY - sample.cursorY);
       if (dotProduct < 0 && distance > 30) overshoots++;
@@ -246,11 +124,10 @@ const analyzeTrackingPerformance = (trackingData) => {
   return { overshootRate, undershootRate, tendency };
 };
 
-// Generate insights based on performance
+// Generate insights
 const generateInsights = (stats, gameType, clickData, spatialData, trackingData) => {
   const insights = [];
 
-  // Score-based insights
   if (stats.score) {
     const scoreThresholds = {
       aim: { good: 2000, great: 2500, amazing: 2800 },
@@ -259,9 +136,8 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
       tracking: { good: 1500, great: 2500, amazing: 3500 },
       switching: { good: 5000, great: 8000, amazing: 12000 },
     };
-    
     const thresholds = scoreThresholds[gameType] || { good: 1000, great: 2000, amazing: 3000 };
-    
+
     if (stats.score >= thresholds.amazing) {
       insights.push({ type: 'positive', icon: Award, title: 'Amazing!', text: 'Outstanding performance! You\'re in the top tier.' });
     } else if (stats.score >= thresholds.great) {
@@ -271,7 +147,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     }
   }
 
-  // Accuracy insights
   if (stats.accuracy !== undefined) {
     if (stats.accuracy >= 95) {
       insights.push({ type: 'positive', icon: Target, title: 'Precision Master', text: 'Near-perfect accuracy! Incredible focus.' });
@@ -280,7 +155,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     }
   }
 
-  // Spatial weakness insights
   if (spatialData?.weakness) {
     insights.push({
       type: 'neutral',
@@ -290,7 +164,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     });
   }
 
-  // Click accuracy insights
   if (clickData?.bias && clickData.bias !== 'center') {
     insights.push({
       type: 'neutral',
@@ -300,7 +173,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     });
   }
 
-  // Tracking insights
   if (trackingData?.tendency && trackingData.tendency !== 'balanced') {
     const tip = trackingData.tendency === 'overshoot'
       ? 'Try reducing your sensitivity or smoothing your movements.'
@@ -313,7 +185,6 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     });
   }
 
-  // Speed insights for aim trainer
   if (stats.avgTime) {
     if (stats.avgTime < 200) {
       insights.push({ type: 'positive', icon: Zap, title: 'Lightning Fast!', text: 'Your reaction time is exceptional.' });
@@ -322,18 +193,16 @@ const generateInsights = (stats, gameType, clickData, spatialData, trackingData)
     }
   }
 
-  return insights.slice(0, 4); // Max 4 insights
+  return insights.slice(0, 4);
 };
 
 // Click Heatmap Component
 const ClickHeatmap = ({ clickData, targetSize = 60 }) => {
   const normalizedClicks = useMemo(() => {
     if (!clickData?.offsets) return [];
-    
-    // Normalize offsets to fit in the heatmap (200px diameter)
-    const scale = 80 / (targetSize / 2); // Scale to fit in 80px radius
+
+    const scale = 80 / (targetSize / 2);
     return clickData.offsets.map((offset, idx) => {
-      // Use deterministic intensity based on distance from center
       const dist = Math.sqrt(offset.x * offset.x + offset.y * offset.y);
       const maxDist = targetSize / 2;
       const intensity = Math.min(1, 0.5 + (dist / maxDist) * 0.5);
@@ -349,32 +218,24 @@ const ClickHeatmap = ({ clickData, targetSize = 60 }) => {
   if (normalizedClicks.length === 0) return null;
 
   return (
-    <div style={styles.heatmapContainer}>
+    <div className="flex justify-center mb-4">
       <div>
-        <div style={styles.heatmapWrapper}>
+        <div className="relative w-[200px] h-[200px] rounded-full bg-slate-900/80 border-2 border-slate-700 overflow-hidden">
           {/* Target rings */}
           {[80, 60, 40, 20].map(size => (
             <div
               key={size}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: `${size * 2}px`,
-                height: `${size * 2}px`,
-                borderRadius: '50%',
-                border: '1px solid rgba(100, 116, 139, 0.3)',
-              }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-600/30"
+              style={{ width: `${size * 2}px`, height: `${size * 2}px` }}
             />
           ))}
-          
+
           {/* Click dots */}
           {normalizedClicks.map((click, i) => (
             <div
               key={i}
+              className="absolute rounded-full -translate-x-1/2 -translate-y-1/2"
               style={{
-                ...styles.heatmapDot,
                 left: `${click.x}px`,
                 top: `${click.y}px`,
                 width: '12px',
@@ -384,40 +245,34 @@ const ClickHeatmap = ({ clickData, targetSize = 60 }) => {
               }}
             />
           ))}
-          
+
           {/* Center dot */}
-          <div style={styles.heatmapCenter} />
-          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-red-500 border-2 border-white z-10" />
+
           {/* Average offset indicator */}
           {clickData.avgOffset && (Math.abs(clickData.avgOffset.x) > 2 || Math.abs(clickData.avgOffset.y) > 2) && (
             <div
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-3 border-cyan-400 bg-transparent"
               style={{
-                position: 'absolute',
                 left: `${100 + clickData.avgOffset.x * (80 / (targetSize / 2))}px`,
                 top: `${100 + clickData.avgOffset.y * (80 / (targetSize / 2))}px`,
-                transform: 'translate(-50%, -50%)',
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                border: '3px solid #22d3ee',
-                backgroundColor: 'transparent',
               }}
               title="Average click position"
             />
           )}
         </div>
-        
-        <div style={styles.legendContainer}>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: 'rgba(59, 130, 246, 0.7)' }} />
+
+        <div className="flex justify-center gap-4 mt-2 text-xs text-slate-400">
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'rgba(59, 130, 246, 0.7)' }} />
             <span>Sparse</span>
           </div>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: 'rgba(239, 68, 68, 0.8)' }} />
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)' }} />
             <span>Dense</span>
           </div>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, border: '2px solid #22d3ee', backgroundColor: 'transparent' }} />
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full border-2 border-cyan-400 bg-transparent" />
             <span>Avg</span>
           </div>
         </div>
@@ -427,10 +282,10 @@ const ClickHeatmap = ({ clickData, targetSize = 60 }) => {
 };
 
 // Main PostGameAnalytics Component
-export default function PostGameAnalytics({ 
-  gameType, 
-  stats, 
-  clickData = [], 
+export default function PostGameAnalytics({
+  gameType,
+  stats,
+  clickData = [],
   trackingData = [],
   targetSize = 60,
   gameWidth = 960,
@@ -438,8 +293,8 @@ export default function PostGameAnalytics({
   const clickAnalysis = useMemo(() => analyzeClickAccuracy(clickData), [clickData]);
   const spatialAnalysis = useMemo(() => analyzeSpatialPerformance(clickData, gameWidth), [clickData, gameWidth]);
   const trackingAnalysis = useMemo(() => analyzeTrackingPerformance(trackingData), [trackingData]);
-  
-  const insights = useMemo(() => 
+
+  const insights = useMemo(() =>
     generateInsights(stats, gameType, clickAnalysis, spatialAnalysis, trackingAnalysis),
     [stats, gameType, clickAnalysis, spatialAnalysis, trackingAnalysis]
   );
@@ -448,19 +303,19 @@ export default function PostGameAnalytics({
   const showTrackingStats = ['tracking', 'switching'].includes(gameType);
 
   return (
-    <div style={styles.container}>
-      {/* Click Heatmap for static target games */}
+    <div className="w-full mt-6">
+      {/* Click Heatmap */}
       {showHeatmap && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <Target size={18} color="#22d3ee" />
+        <div className="section-card mb-4">
+          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <Target size={18} className="text-cyan-400" />
             Click Accuracy Heatmap
           </h3>
           <ClickHeatmap clickData={clickAnalysis} targetSize={targetSize} />
-          
+
           {clickAnalysis.bias !== 'center' && (
-            <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
-              Your clicks tend to land <span style={{ color: '#f59e0b' }}>{clickAnalysis.bias}</span> of center
+            <p className="text-center text-slate-400 text-sm">
+              Your clicks tend to land <span className="text-amber-400">{clickAnalysis.bias}</span> of center
             </p>
           )}
         </div>
@@ -468,58 +323,58 @@ export default function PostGameAnalytics({
 
       {/* Spatial Performance */}
       {clickData.length > 0 && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <Target size={18} color="#a855f7" />
+        <div className="section-card mb-4">
+          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <Target size={18} className="text-purple-500" />
             Spatial Performance
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', maxWidth: '400px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.6)', borderRadius: '0.375rem' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem' }}>LEFT TARGETS</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: '600', color: spatialAnalysis.leftBias > 0 ? '#ef4444' : spatialAnalysis.leftBias < 0 ? '#3b82f6' : '#22c55e' }}>
+          <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
+            <div className="text-center p-3 bg-slate-900/60 rounded-md">
+              <div className="text-[0.7rem] text-slate-500 mb-1">LEFT TARGETS</div>
+              <div className={`text-lg font-semibold ${spatialAnalysis.leftBias > 0 ? 'text-red-500' : spatialAnalysis.leftBias < 0 ? 'text-blue-500' : 'text-green-500'}`}>
                 {spatialAnalysis.leftBias > 0 ? `+${spatialAnalysis.leftBias}px` : `${spatialAnalysis.leftBias}px`}
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.25rem' }}>
-                {spatialAnalysis.leftBias > 5 ? 'Overshooting →' : spatialAnalysis.leftBias < -5 ? '← Undershooting' : 'Centered'}
+              <div className="text-[0.65rem] text-slate-500 mt-1">
+                {spatialAnalysis.leftBias > 5 ? 'Overshooting \u2192' : spatialAnalysis.leftBias < -5 ? '\u2190 Undershooting' : 'Centered'}
               </div>
             </div>
-            <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.6)', borderRadius: '0.375rem' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem' }}>RIGHT TARGETS</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: '600', color: spatialAnalysis.rightBias > 0 ? '#ef4444' : spatialAnalysis.rightBias < 0 ? '#3b82f6' : '#22c55e' }}>
+            <div className="text-center p-3 bg-slate-900/60 rounded-md">
+              <div className="text-[0.7rem] text-slate-500 mb-1">RIGHT TARGETS</div>
+              <div className={`text-lg font-semibold ${spatialAnalysis.rightBias > 0 ? 'text-red-500' : spatialAnalysis.rightBias < 0 ? 'text-blue-500' : 'text-green-500'}`}>
                 {spatialAnalysis.rightBias > 0 ? `+${spatialAnalysis.rightBias}px` : `${spatialAnalysis.rightBias}px`}
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.25rem' }}>
-                {spatialAnalysis.rightBias > 5 ? 'Overshooting →' : spatialAnalysis.rightBias < -5 ? '← Undershooting' : 'Centered'}
+              <div className="text-[0.65rem] text-slate-500 mt-1">
+                {spatialAnalysis.rightBias > 5 ? 'Overshooting \u2192' : spatialAnalysis.rightBias < -5 ? '\u2190 Undershooting' : 'Centered'}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tracking/Switching specific stats */}
+      {/* Tracking/Switching stats */}
       {showTrackingStats && trackingData.length > 0 && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <Zap size={18} color="#06b6d4" />
+        <div className="section-card mb-4">
+          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <Zap size={18} className="text-cyan-500" />
             Movement Analysis
           </h3>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>OVERSHOOT</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '600', color: trackingAnalysis.overshootRate > 30 ? '#ef4444' : '#22c55e' }}>
+          <div className="flex justify-center gap-8">
+            <div className="text-center">
+              <div className="text-xs text-slate-500">OVERSHOOT</div>
+              <div className={`text-2xl font-semibold ${trackingAnalysis.overshootRate > 30 ? 'text-red-500' : 'text-green-500'}`}>
                 {trackingAnalysis.overshootRate}%
               </div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>UNDERSHOOT</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '600', color: trackingAnalysis.undershootRate > 30 ? '#ef4444' : '#22c55e' }}>
+            <div className="text-center">
+              <div className="text-xs text-slate-500">UNDERSHOOT</div>
+              <div className={`text-2xl font-semibold ${trackingAnalysis.undershootRate > 30 ? 'text-red-500' : 'text-green-500'}`}>
                 {trackingAnalysis.undershootRate}%
               </div>
             </div>
           </div>
           {trackingAnalysis.tendency !== 'balanced' && (
-            <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.75rem' }}>
-              You tend to <span style={{ color: '#f59e0b' }}>{trackingAnalysis.tendency}</span> your targets
+            <p className="text-center text-slate-400 text-sm mt-3">
+              You tend to <span className="text-amber-400">{trackingAnalysis.tendency}</span> your targets
             </p>
           )}
         </div>
@@ -527,25 +382,25 @@ export default function PostGameAnalytics({
 
       {/* Insights */}
       {insights.length > 0 && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <TrendingUp size={18} color="#22c55e" />
+        <div className="section-card mb-4">
+          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <TrendingUp size={18} className="text-green-500" />
             Performance Insights
           </h3>
-          <div style={styles.insightsGrid}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {insights.map((insight, i) => {
               const Icon = insight.icon;
-              const colorStyle = insight.type === 'positive' ? styles.positive 
-                : insight.type === 'negative' ? styles.negative 
-                : styles.neutral;
-              
+              const colorClass = insight.type === 'positive' ? 'text-green-500'
+                : insight.type === 'negative' ? 'text-red-500'
+                : 'text-amber-400';
+
               return (
-                <div key={i} style={styles.insightCard}>
-                  <div style={styles.insightHeader}>
-                    <Icon size={16} style={colorStyle} />
-                    <span style={{ ...styles.insightTitle, ...colorStyle }}>{insight.title}</span>
+                <div key={i} className="bg-slate-900/60 rounded-lg p-3.5 border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon size={16} className={colorClass} />
+                    <span className={`text-xs uppercase tracking-wide ${colorClass}`}>{insight.title}</span>
                   </div>
-                  <p style={styles.insightDescription}>{insight.text}</p>
+                  <p className="text-[0.8rem] text-slate-500">{insight.text}</p>
                 </div>
               );
             })}

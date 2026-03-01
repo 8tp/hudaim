@@ -2,93 +2,6 @@ import { useState } from 'react';
 import { X, User, Trash2 } from 'lucide-react';
 import { getNickname, setNickname, clearLeaderboard } from '../utils/leaderboard';
 
-const styles = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: '#1e293b',
-    borderRadius: '1rem',
-    padding: '1.5rem',
-    width: '100%',
-    maxWidth: '400px',
-    margin: '1rem',
-    border: '1px solid #334155',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '1.5rem',
-  },
-  title: {
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    color: '#94a3b8',
-    cursor: 'pointer',
-    padding: '0.25rem',
-  },
-  section: {
-    marginBottom: '1.5rem',
-  },
-  label: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    color: '#94a3b8',
-    fontSize: '0.875rem',
-    marginBottom: '0.5rem',
-  },
-  input: {
-    width: '100%',
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #334155',
-    backgroundColor: '#0f172a',
-    color: 'white',
-    fontSize: '1rem',
-    boxSizing: 'border-box',
-  },
-  dangerSection: {
-    borderTop: '1px solid #334155',
-    paddingTop: '1.5rem',
-  },
-  dangerTitle: {
-    color: '#ef4444',
-    fontSize: '0.875rem',
-    fontWeight: 'bold',
-    marginBottom: '0.75rem',
-  },
-  dangerButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem 1rem',
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    border: '1px solid #ef4444',
-    borderRadius: '0.5rem',
-    color: '#ef4444',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-  },
-  savedMessage: {
-    color: '#22c55e',
-    fontSize: '0.75rem',
-    marginTop: '0.5rem',
-  },
-};
-
 export default function Settings({ isOpen, onClose }) {
   const [nickname, setNicknameState] = useState(() => getNickname());
   const [saved, setSaved] = useState(false);
@@ -116,17 +29,17 @@ export default function Settings({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Settings</h2>
-          <button style={styles.closeButton} onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]" onClick={onClose}>
+      <div className="animate-fade-in-scale bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white">Settings</h2>
+          <button className="p-1 text-slate-400 hover:text-white transition-colors" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
-        <div style={styles.section}>
-          <label style={styles.label}>
+        <div className="mb-6">
+          <label className="flex items-center gap-2 text-slate-400 text-sm mb-2">
             <User size={16} />
             Nickname
           </label>
@@ -134,16 +47,19 @@ export default function Settings({ isOpen, onClose }) {
             type="text"
             value={nickname}
             onChange={handleNicknameChange}
-            style={styles.input}
+            className="input-field w-full"
             placeholder="Enter your nickname"
             maxLength={20}
           />
-          {saved && <p style={styles.savedMessage}>Saved!</p>}
+          {saved && <p className="text-green-500 text-xs mt-2">Saved!</p>}
         </div>
 
-        <div style={styles.dangerSection}>
-          <p style={styles.dangerTitle}>Danger Zone</p>
-          <button style={styles.dangerButton} onClick={handleClearLeaderboard}>
+        <div className="border-t border-slate-700 pt-6">
+          <p className="text-red-500 text-sm font-bold mb-3">Danger Zone</p>
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500 rounded-lg text-red-500 text-sm hover:bg-red-500/30 transition-colors cursor-pointer"
+            onClick={handleClearLeaderboard}
+          >
             <Trash2 size={16} />
             Clear All Leaderboard Data
           </button>
