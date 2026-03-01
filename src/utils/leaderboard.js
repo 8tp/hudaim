@@ -2,6 +2,7 @@ const STORAGE_KEY = 'hudaim_leaderboard';
 const NICKNAME_KEY = 'hudaim_nickname';
 const UUID_KEY = 'hudaim_user_uuid';
 import { API_BASE } from './api';
+import { validateNickname } from './validateNickname';
 
 
 // Generate a UUID for the user
@@ -41,9 +42,10 @@ export const hasCompletedSetup = () => {
 // Complete initial setup
 export const completeSetup = (nickname) => {
   const uuid = getUserUUID();
-  const sanitized = nickname.trim().slice(0, 20) || 'Player';
+  const result = validateNickname(nickname);
+  const sanitized = result.valid ? result.sanitized : 'Player';
   localStorage.setItem(NICKNAME_KEY, sanitized);
-  return { uuid, nickname: sanitized };
+  return { uuid, nickname: sanitized, ...result };
 };
 
 // Sync with server and return merged data
@@ -131,23 +133,27 @@ let nicknameSyncTimer = null;
 
 export const setNickname = (nickname) => {
   try {
+    const result = validateNickname(nickname);
+    if (!result.valid) {
+      return result;
+    }
+
     const oldNickname = getNickname();
-    const sanitized = nickname.trim().slice(0, 20) || 'Player';
-    localStorage.setItem(NICKNAME_KEY, sanitized);
+    localStorage.setItem(NICKNAME_KEY, result.sanitized);
 
     // Update all local leaderboard entries with new nickname
-    if (oldNickname !== sanitized) {
-      updateAllNicknames(sanitized);
+    if (oldNickname !== result.sanitized) {
+      updateAllNicknames(result.sanitized);
       // Debounce server sync — only fires after 500ms of no changes
       clearTimeout(nicknameSyncTimer);
       nicknameSyncTimer = setTimeout(() => {
-        syncNicknameChange(sanitized).catch(() => {});
+        syncNicknameChange(result.sanitized).catch(() => {});
       }, 500);
     }
 
-    return sanitized;
+    return result;
   } catch {
-    return 'Player';
+    return { valid: false, sanitized: 'Player', error: null };
   }
 };
 

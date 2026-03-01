@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { User, ArrowRight } from 'lucide-react';
+import { validateNickname } from '../utils/validateNickname';
 
 export default function NicknamePrompt({ onComplete }) {
   const [nickname, setNickname] = useState('');
+  const [error, setError] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const trimmed = nickname.trim();
-    if (trimmed.length >= 2) {
-      onComplete(trimmed);
+    const result = validateNickname(nickname);
+    if (result.valid) {
+      setError(null);
+      onComplete(result.sanitized);
+    } else {
+      setError(result.error);
     }
+  };
+
+  const handleChange = (e) => {
+    setNickname(e.target.value.slice(0, 20));
+    if (error) setError(null);
   };
 
   const isValid = nickname.trim().length >= 2;
@@ -31,12 +41,13 @@ export default function NicknamePrompt({ onComplete }) {
             <input
               type="text"
               value={nickname}
-              onChange={(e) => setNickname(e.target.value.slice(0, 20))}
+              onChange={handleChange}
               className="input-field-lg"
               placeholder="Your nickname"
               autoFocus
               maxLength={20}
             />
+            {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
           </div>
 
           <button
@@ -51,7 +62,7 @@ export default function NicknamePrompt({ onComplete }) {
         </form>
 
         <p className="text-slate-500 text-sm mt-4">
-          2-20 characters &middot; You can change this later in settings
+          Letters, numbers, spaces, _ . - &middot; 2-20 characters
         </p>
       </div>
     </div>

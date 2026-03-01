@@ -22,6 +22,7 @@ export default function AimTrainer() {
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [nickname, setNicknameState] = useState(() => getNickname());
+  const [nicknameError, setNicknameError] = useState(null);
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('aim'));
 
   useEffect(() => {
@@ -44,8 +45,9 @@ export default function AimTrainer() {
   const [showReplayViewer, setShowReplayViewer] = useState(false);
 
   const handleNicknameChange = (e) => {
-    const newNickname = setNickname(e.target.value);
-    setNicknameState(newNickname);
+    const result = setNickname(e.target.value);
+    setNicknameState(result.valid ? result.sanitized : e.target.value);
+    setNicknameError(result.error);
   };
 
   const generateTarget = () => {
@@ -348,6 +350,7 @@ export default function AimTrainer() {
           leaderboard={leaderboard}
           leaderboardScoreColor="text-cyan-400"
           nickname={nickname}
+          nicknameError={nicknameError}
           onNicknameChange={handleNicknameChange}
           onPlayAgain={startGame}
           onViewReplay={lastReplay ? () => setShowReplayViewer(true) : null}

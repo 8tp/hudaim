@@ -17,6 +17,7 @@ export default function GridShot() {
   useDocumentTitle('Grid Shot | HudAim');
   const [, forceUpdate] = useState(0);
   const [nickname, setNicknameState] = useState(() => getNickname());
+  const [nicknameError, setNicknameError] = useState(null);
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('gridshot'));
 
   useEffect(() => {
@@ -135,8 +136,9 @@ export default function GridShot() {
   };
 
   const handleNicknameChange = (e) => {
-    const newNickname = setNickname(e.target.value);
-    setNicknameState(newNickname);
+    const result = setNickname(e.target.value);
+    setNicknameState(result.valid ? result.sanitized : e.target.value);
+    setNicknameError(result.error);
   };
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export default function GridShot() {
   }, []);
 
   const handleTargetClick = (e, cellIndex) => {
+    e.stopPropagation();
     if (gameState.current !== 'playing') return;
     if (clickedTargets.current.has(cellIndex)) return;
     if (!activeTargets.current.has(cellIndex)) return;
@@ -353,7 +356,6 @@ export default function GridShot() {
           {gameState.current === 'playing' && (
             <div
               className="absolute inset-0 flex items-center justify-center"
-              onMouseDown={(e) => e.stopPropagation()}
             >
               <div
                 style={{
@@ -384,6 +386,8 @@ export default function GridShot() {
                     {activeTargets.current.has(index) && (
                       <button
                         onMouseDown={(e) => handleTargetClick(e, index)}
+                        onDragStart={(e) => e.preventDefault()}
+                        draggable={false}
                         style={{
                           width: '80px',
                           height: '80px',
@@ -400,9 +404,11 @@ export default function GridShot() {
                           transform: 'translate3d(0, 0, 0) scale(1)',
                           backfaceVisibility: 'hidden',
                           opacity: 1,
+                          userSelect: 'none',
+                          WebkitUserDrag: 'none',
                         }}
                       >
-                        <div className="w-4 h-4 rounded-full bg-white" />
+                        <div className="w-4 h-4 rounded-full bg-white" style={{ pointerEvents: 'none' }} />
                       </button>
                     )}
                   </div>
@@ -427,6 +433,7 @@ export default function GridShot() {
           leaderboard={leaderboard}
           leaderboardScoreColor="text-amber-400"
           nickname={nickname}
+          nicknameError={nicknameError}
           onNicknameChange={handleNicknameChange}
           onPlayAgain={(e) => { if (e) e.stopPropagation(); startGame(); }}
           onViewReplay={lastReplay ? () => setShowReplayViewer(true) : null}

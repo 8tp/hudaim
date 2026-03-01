@@ -3,7 +3,10 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const Filter = require('bad-words');
 const db = require('./db');
+
+const profanityFilter = new Filter();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -84,6 +87,40 @@ const isValidNumber = (value) => {
 
 const isValidString = (value) => {
   return typeof value === 'string' && value.length > 0 && value.length <= 100;
+};
+
+const NICKNAME_REGEX = /^[a-zA-Z0-9 _.\-]+$/;
+
+const validateNickname = (raw) => {
+  if (typeof raw !== 'string') {
+    return { valid: false, sanitized: 'Player', error: null };
+  }
+
+  const sanitized = raw.trim().replace(/\s{2,}/g, ' ');
+
+  if (sanitized.length === 0) {
+    return { valid: false, sanitized: 'Player', error: null };
+  }
+
+  if (!NICKNAME_REGEX.test(sanitized)) {
+    return { valid: false, sanitized, error: 'Only letters, numbers, spaces, _ . - allowed' };
+  }
+
+  if (sanitized.length < 2) {
+    return { valid: false, sanitized, error: 'Nickname must be at least 2 characters' };
+  }
+
+  if (sanitized.length > 20) {
+    return { valid: false, sanitized: sanitized.slice(0, 20), error: 'Nickname must be 20 characters or less' };
+  }
+
+  // Normalize separators to spaces so profanity filter catches e.g. "bad_word"
+  const normalized = sanitized.replace(/[_.\-]/g, ' ');
+  if (profanityFilter.isProfane(normalized)) {
+    return { valid: false, sanitized, error: 'Nickname contains inappropriate language' };
+  }
+
+  return { valid: true, sanitized, error: null };
 };
 
 const isValidUUID = (uuid) => {
@@ -446,7 +483,11 @@ app.post('/api/session/end', asyncHandler(async (req, res) => {
   
   // Save to leaderboard
   const gameType = session.gameType;
-  const sanitizedNickname = (nickname || 'Player').trim().slice(0, 20);
+  const nicknameResult = validateNickname(nickname || 'Player');
+  if (!nicknameResult.valid) {
+    return res.status(400).json({ error: nicknameResult.error || 'Invalid nickname' });
+  }
+  const sanitizedNickname = nicknameResult.sanitized;
 
   const newEntry = {
     uuid: session.uuid,
@@ -472,8 +513,9 @@ app.post('/api/leaderboard/:gameType', validateGameType, asyncHandler(async (req
   }
 
   // Validate nickname
-  if (!isValidString(nickname) || nickname.length > 20) {
-    return res.status(400).json({ error: 'Invalid nickname' });
+  const nicknameResult = validateNickname(nickname);
+  if (!nicknameResult.valid) {
+    return res.status(400).json({ error: nicknameResult.error || 'Invalid nickname' });
   }
 
   // Validate score and stats
@@ -482,7 +524,7 @@ app.post('/api/leaderboard/:gameType', validateGameType, asyncHandler(async (req
     return res.status(400).json({ error: validation.error });
   }
 
-  const sanitizedNickname = nickname.trim().slice(0, 20);
+  const sanitizedNickname = nicknameResult.sanitized;
 
   const newEntry = {
     uuid: uuid || null,
@@ -504,7 +546,12 @@ app.put('/api/nickname', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'uuid and nickname are required' });
   }
 
-  await db.updateNickname(uuid, nickname);
+  const nicknameResult = validateNickname(nickname);
+  if (!nicknameResult.valid) {
+    return res.status(400).json({ error: nicknameResult.error || 'Invalid nickname' });
+  }
+
+  await db.updateNickname(uuid, nicknameResult.sanitized);
   res.json({ success: true });
 }));
 

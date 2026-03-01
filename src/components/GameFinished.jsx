@@ -9,6 +9,7 @@ export default function GameFinished({
   leaderboard = [],
   leaderboardScoreColor = 'text-cyan-400',
   nickname,
+  nicknameError,
   onNicknameChange,
   onPlayAgain,
   onViewReplay,
@@ -35,6 +36,9 @@ export default function GameFinished({
             maxLength={20}
           />
         </div>
+        {nicknameError && (
+          <p className="text-red-400 text-sm -mt-4 mb-4 animate-fade-in-up">{nicknameError}</p>
+        )}
 
         {stats.length > 0 && (
           <div className={`grid ${statGridCols} gap-4 mb-8 animate-fade-in-up`} style={{ animationDelay: '160ms' }}>

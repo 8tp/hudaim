@@ -28,6 +28,7 @@ export default function Switching() {
   const [kills, setKills] = useState(0);
   const [avgSwitchTime, setAvgSwitchTime] = useState(0);
   const [nickname, setNicknameState] = useState(() => getNickname());
+  const [nicknameError, setNicknameError] = useState(null);
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('switching'));
 
   useEffect(() => {
@@ -51,8 +52,9 @@ export default function Switching() {
   const [showReplayViewer, setShowReplayViewer] = useState(false);
 
   const handleNicknameChange = (e) => {
-    const newNickname = setNickname(e.target.value);
-    setNicknameState(newNickname);
+    const result = setNickname(e.target.value);
+    setNicknameState(result.valid ? result.sanitized : e.target.value);
+    setNicknameError(result.error);
   };
 
   const initializeTargets = () => {
@@ -472,6 +474,7 @@ export default function Switching() {
           leaderboard={leaderboard}
           leaderboardScoreColor="text-cyan-400"
           nickname={nickname}
+          nicknameError={nicknameError}
           onNicknameChange={handleNicknameChange}
           onPlayAgain={startGame}
           onViewReplay={lastReplay ? () => setShowReplayViewer(true) : null}

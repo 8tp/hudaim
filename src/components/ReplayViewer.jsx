@@ -370,11 +370,13 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
           <div className="flex-1 flex flex-col gap-1">
             <div
               ref={timelineRef}
-              className="relative h-2 bg-slate-700 rounded cursor-pointer overflow-hidden"
+              className="relative h-6 flex items-center cursor-pointer"
               onClick={handleTimelineClick}
             >
-              <div className="absolute top-0 left-0 h-full bg-cyan-400 rounded" style={{ width: `${progress}%`, transition: 'width 0.1s linear' }} />
-              <div className="absolute top-1/2 w-4 h-4 bg-white rounded-full -translate-y-1/2 shadow cursor-grab" style={{ left: `${progress}%`, transform: `translate(-50%, -50%)` }} />
+              <div className="absolute left-0 right-0 h-2 bg-slate-700 rounded overflow-hidden">
+                <div className="h-full bg-cyan-400 rounded-l" style={{ width: `${progress}%`, transition: 'width 0.1s linear' }} />
+              </div>
+              <div className="absolute w-4 h-4 bg-white rounded-full shadow-lg cursor-grab z-10" style={{ left: `${progress}%`, top: '50%', transform: 'translate(-50%, -50%)' }} />
             </div>
             <div className="flex justify-between text-xs text-slate-500">
               <span>{formatTime(currentTime)}</span>

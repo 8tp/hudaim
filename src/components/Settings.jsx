@@ -5,6 +5,7 @@ import { getNickname, setNickname, clearLeaderboard } from '../utils/leaderboard
 export default function Settings({ isOpen, onClose }) {
   const [nickname, setNicknameState] = useState(() => getNickname());
   const [saved, setSaved] = useState(false);
+  const [nicknameError, setNicknameError] = useState(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [cleared, setCleared] = useState(false);
 
@@ -30,9 +31,15 @@ export default function Settings({ isOpen, onClose }) {
   const handleNicknameChange = (e) => {
     const value = e.target.value;
     setNicknameState(value);
-    setNickname(value);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    const result = setNickname(value);
+    if (result.valid) {
+      setNicknameError(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } else {
+      setNicknameError(result.error);
+      setSaved(false);
+    }
   };
 
   const handleClearLeaderboard = () => {
@@ -67,7 +74,8 @@ export default function Settings({ isOpen, onClose }) {
             placeholder="Enter your nickname"
             maxLength={20}
           />
-          {saved && <p className="text-green-500 text-xs mt-2">Saved!</p>}
+          {nicknameError && <p className="text-red-400 text-xs mt-2">{nicknameError}</p>}
+          {saved && !nicknameError && <p className="text-green-500 text-xs mt-2">Saved!</p>}
         </div>
 
         <div className="border-t border-slate-700 pt-6">

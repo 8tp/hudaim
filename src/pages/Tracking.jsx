@@ -53,6 +53,7 @@ export default function Tracking() {
   const [finalReactionTime, setFinalReactionTime] = useState(0);
   const [finalDifficulty, setFinalDifficulty] = useState('Easy');
   const [nickname, setNicknameState] = useState(() => getNickname());
+  const [nicknameError, setNicknameError] = useState(null);
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('tracking'));
 
   useEffect(() => {
@@ -472,8 +473,9 @@ export default function Tracking() {
   };
 
   const handleNicknameChange = (e) => {
-    const newNickname = setNickname(e.target.value);
-    setNicknameState(newNickname);
+    const result = setNickname(e.target.value);
+    setNicknameState(result.valid ? result.sanitized : e.target.value);
+    setNicknameError(result.error);
   };
 
   const trackingPercentage = Math.round((finalTrackingTime / GAME_DURATION) * 100);
@@ -607,6 +609,7 @@ export default function Tracking() {
           leaderboard={leaderboard}
           leaderboardScoreColor="text-purple-400"
           nickname={nickname}
+          nicknameError={nicknameError}
           onNicknameChange={handleNicknameChange}
           onPlayAgain={startGame}
           onViewReplay={lastReplay ? () => setShowReplayViewer(true) : null}
