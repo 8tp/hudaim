@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Zap, RotateCcw, Trophy, User } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { startGameSession, endGameSession } from '../utils/gameSession';
@@ -12,6 +13,7 @@ const RESULT = 4;
 const MIN_DELAY_BEFORE_NEXT = 1500;
 
 export default function ReactionTime() {
+  useDocumentTitle('Reaction Time | HudAim');
   const [gameState, setGameState] = useState(WAITING);
   const [reactionTime, setReactionTime] = useState(null);
   const [results, setResults] = useState([]);

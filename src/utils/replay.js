@@ -1,6 +1,8 @@
+import { API_BASE } from './api';
+
 /**
  * Replay Recording and Playback System
- * 
+ *
  * Records mouse movements and game events at 60 FPS for replay functionality.
  * Stores replays locally in IndexedDB and uploads top 3 scores to server.
  */
@@ -197,7 +199,6 @@ export const getLocalReplay = async (replayId) => {
 };
 
 // Server API functions
-const API_BASE = import.meta.env.VITE_API_URL || null;
 
 /**
  * Upload replay to server (only for top 3 scores)

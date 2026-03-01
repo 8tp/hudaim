@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Zap, Target, Crosshair, Timer, MousePointer, Grid3X3, Move, Focus } from 'lucide-react';
 
 const games = [
@@ -35,18 +36,19 @@ const games = [
     description: 'Quickly switch between multiple targets. Eliminate as many as possible in 60 seconds.',
     icon: Crosshair,
     to: '/switching',
-    gradient: 'from-cyan-500 to-blue-500',
+    gradient: 'from-indigo-500 to-cyan-500',
   },
   {
     title: 'Precision',
     description: 'Hit small targets with maximum accuracy. 4 targets at once for 60 seconds. Score = Kills x Accuracy!',
     icon: Focus,
     to: '/precision',
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-rose-500 to-orange-500',
   },
 ];
 
 export default function Home() {
+  useDocumentTitle('HudAim - Aim Training');
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Hero */}

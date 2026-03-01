@@ -1,7 +1,8 @@
 const STORAGE_KEY = 'hudaim_leaderboard';
 const NICKNAME_KEY = 'hudaim_nickname';
 const UUID_KEY = 'hudaim_user_uuid';
-const API_BASE = import.meta.env.VITE_API_URL || null;
+import { API_BASE } from './api';
+
 
 // Generate a UUID for the user
 const generateUUID = () => {

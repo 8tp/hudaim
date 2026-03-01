@@ -279,20 +279,20 @@ export default function PostGameAnalytics({
           </h3>
           <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
             <div className="text-center p-3 bg-slate-900/60 rounded-md">
-              <div className="text-[0.7rem] text-slate-500 mb-1">LEFT TARGETS</div>
+              <div className="text-xs text-slate-500 mb-1">LEFT TARGETS</div>
               <div className={`text-lg font-semibold ${spatialAnalysis.leftBias > 0 ? 'text-red-500' : spatialAnalysis.leftBias < 0 ? 'text-blue-500' : 'text-green-500'}`}>
                 {spatialAnalysis.leftBias > 0 ? `+${spatialAnalysis.leftBias}px` : `${spatialAnalysis.leftBias}px`}
               </div>
-              <div className="text-[0.65rem] text-slate-500 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 {spatialAnalysis.leftBias > 5 ? 'Overshooting \u2192' : spatialAnalysis.leftBias < -5 ? '\u2190 Undershooting' : 'Centered'}
               </div>
             </div>
             <div className="text-center p-3 bg-slate-900/60 rounded-md">
-              <div className="text-[0.7rem] text-slate-500 mb-1">RIGHT TARGETS</div>
+              <div className="text-xs text-slate-500 mb-1">RIGHT TARGETS</div>
               <div className={`text-lg font-semibold ${spatialAnalysis.rightBias > 0 ? 'text-red-500' : spatialAnalysis.rightBias < 0 ? 'text-blue-500' : 'text-green-500'}`}>
                 {spatialAnalysis.rightBias > 0 ? `+${spatialAnalysis.rightBias}px` : `${spatialAnalysis.rightBias}px`}
               </div>
-              <div className="text-[0.65rem] text-slate-500 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 {spatialAnalysis.rightBias > 5 ? 'Overshooting \u2192' : spatialAnalysis.rightBias < -5 ? '\u2190 Undershooting' : 'Centered'}
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function PostGameAnalytics({
                     <Icon size={16} className={colorClass} />
                     <span className={`text-xs uppercase tracking-wide ${colorClass}`}>{insight.title}</span>
                   </div>
-                  <p className="text-[0.8rem] text-slate-500">{insight.text}</p>
+                  <p className="text-sm text-slate-500">{insight.text}</p>
                 </div>
               );
             })}

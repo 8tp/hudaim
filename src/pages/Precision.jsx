@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Focus, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
@@ -13,6 +14,7 @@ const NUM_SIMULTANEOUS = 4;
 const TARGET_SIZE = 40;
 
 export default function Precision() {
+  useDocumentTitle('Precision | HudAim');
   const [gameState, setGameState] = useState('idle');
   const [targets, setTargets] = useState([]);
   const [score, setScore] = useState(0);
@@ -167,8 +169,8 @@ export default function Precision() {
     const clickedTarget = targetsRef.current.find(t => t.id === targetId);
     if (clickedTarget && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const clickX = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+      const clickY = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
       const targetCenterX = clickedTarget.x + clickedTarget.size / 2;
       const targetCenterY = clickedTarget.y + clickedTarget.size / 2;
 
@@ -215,8 +217,8 @@ export default function Precision() {
     if (replayRecorderRef.current && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       replayRecorderRef.current.recordEvent('miss', {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) / rect.width * GAME_WIDTH,
+        y: (e.clientY - rect.top) / rect.height * GAME_HEIGHT
       });
     }
 
@@ -228,8 +230,8 @@ export default function Precision() {
     if (replayRecorderRef.current && gameStateRef.current === 'playing' && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       replayRecorderRef.current.recordMouseMove(
-        e.clientX - rect.left,
-        e.clientY - rect.top
+        (e.clientX - rect.left) / rect.width * GAME_WIDTH,
+        (e.clientY - rect.top) / rect.height * GAME_HEIGHT
       );
     }
   };
@@ -266,7 +268,7 @@ export default function Precision() {
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <p className="text-xs text-slate-400">Time</p>
-                <p className="text-lg font-bold text-purple-400">{timeLeft}s</p>
+                <p className="text-lg font-bold text-amber-400">{timeLeft}s</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-slate-400">Kills</p>

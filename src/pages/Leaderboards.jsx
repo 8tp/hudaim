@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Trophy, Play } from 'lucide-react';
 import { syncLeaderboard } from '../utils/leaderboard';
 import { getServerReplays, getServerReplay, getLocalReplays, getLocalReplay } from '../utils/replay';
@@ -48,6 +49,7 @@ const formatStats = (stats, gameType) => {
 };
 
 export default function Leaderboards() {
+  useDocumentTitle('Leaderboards | HudAim');
   const [selectedGame, setSelectedGame] = useState(GAME_TYPES[0]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(false);

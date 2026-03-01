@@ -29,6 +29,8 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text);
+    scrollbar-color: var(--color-surface-elevated) var(--color-bg);
+    scrollbar-width: thin;
   }
 
   #root {

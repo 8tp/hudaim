@@ -1,18 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Grid3X3, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
 import { startGameSession, endGameSession } from '../utils/gameSession';
+import FixedGameArea, { GAME_WIDTH, GAME_HEIGHT } from '../components/FixedGameArea';
 import PostGameAnalytics from '../components/PostGameAnalytics';
 import ReplayViewer from '../components/ReplayViewer';
 import GameFinished from '../components/GameFinished';
-import { GAME_WIDTH, GAME_HEIGHT } from '../components/FixedGameArea';
 
 const GAME_DURATION = 30;
 const GRID_SIZE = 3;
 const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
 export default function GridShot() {
+  useDocumentTitle('Grid Shot | HudAim');
   const [, forceUpdate] = useState(0);
   const [nickname, setNicknameState] = useState(() => getNickname());
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard('gridshot'));
@@ -209,8 +211,8 @@ export default function GridShot() {
     if (replayRecorderRef.current && gameAreaRef.current) {
       const rect = gameAreaRef.current.getBoundingClientRect();
       replayRecorderRef.current.recordEvent('miss', {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) / rect.width * GAME_WIDTH,
+        y: (e.clientY - rect.top) / rect.height * GAME_HEIGHT
       });
     }
 
@@ -264,7 +266,7 @@ export default function GridShot() {
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <p className="text-xs text-slate-400">Time</p>
-                <p className="text-lg font-bold text-yellow-400">{timeLeft.current}s</p>
+                <p className="text-lg font-bold text-amber-400">{timeLeft.current}s</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-slate-400">Score</p>
@@ -284,21 +286,15 @@ export default function GridShot() {
         </div>
       </div>
 
-      {/* Game area - stays inline for grid rendering */}
       {gameState.current !== 'finished' && (
-        <div
+        <FixedGameArea
           ref={gameAreaRef}
-          className="flex-1 relative flex items-center justify-center min-h-[500px] overflow-hidden"
-          style={{
-            backgroundColor: '#0f172a',
-            transform: 'translate3d(0, 0, 0)',
-            willChange: 'transform',
-          }}
           onMouseDown={handleMiss}
           onMouseMove={handleMouseMove}
+          cursor="crosshair"
         >
           {gameState.current === 'idle' && (
-            <div className="flex flex-col items-center justify-center animate-fade-in-up">
+            <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in-up">
               <Grid3X3 size={80} className="text-amber-400 mb-6" />
               <h2 className="text-3xl font-bold text-white mb-4">Grid Shot</h2>
               <p className="text-slate-400 mb-8 text-center max-w-sm px-4">
@@ -315,61 +311,65 @@ export default function GridShot() {
           {/* Grid cells - keep inline styles for game rendering */}
           {gameState.current === 'playing' && (
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                gap: '1rem',
-                padding: '1rem',
-              }}
+              className="absolute inset-0 flex items-center justify-center"
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {Array.from({ length: TOTAL_CELLS }).map((_, index) => (
-                <div
-                  key={index}
-                  ref={el => cellRefs.current[index] = el}
-                  style={{
-                    width: '100px',
-                    height: '100px',
-                    backgroundColor: 'rgba(51, 65, 85, 0.3)',
-                    borderRadius: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.1s ease-out',
-                    willChange: 'background-color',
-                    transform: 'translate3d(0, 0, 0)',
-                    backfaceVisibility: 'hidden',
-                  }}
-                >
-                  {activeTargets.current.has(index) && (
-                    <button
-                      onMouseDown={() => handleTargetClick(index)}
-                      style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(to bottom right, #f59e0b, #ef4444)',
-                        boxShadow: '0 10px 25px rgba(245, 158, 11, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        border: 'none',
-                        transition: 'transform 0.05s ease-out, opacity 0.15s ease-out',
-                        willChange: 'transform, opacity',
-                        transform: 'translate3d(0, 0, 0) scale(1)',
-                        backfaceVisibility: 'hidden',
-                        opacity: 1,
-                      }}
-                    >
-                      <div className="w-4 h-4 rounded-full bg-white" />
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                  gap: '1rem',
+                  padding: '1rem',
+                }}
+              >
+                {Array.from({ length: TOTAL_CELLS }).map((_, index) => (
+                  <div
+                    key={index}
+                    ref={el => cellRefs.current[index] = el}
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      backgroundColor: 'rgba(51, 65, 85, 0.3)',
+                      borderRadius: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 0.1s ease-out',
+                      willChange: 'background-color',
+                      transform: 'translate3d(0, 0, 0)',
+                      backfaceVisibility: 'hidden',
+                    }}
+                  >
+                    {activeTargets.current.has(index) && (
+                      <button
+                        onMouseDown={() => handleTargetClick(index)}
+                        style={{
+                          width: '80px',
+                          height: '80px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(to bottom right, #f59e0b, #ef4444)',
+                          boxShadow: '0 10px 25px rgba(245, 158, 11, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          border: 'none',
+                          transition: 'transform 0.05s ease-out, opacity 0.15s ease-out',
+                          willChange: 'transform, opacity',
+                          transform: 'translate3d(0, 0, 0) scale(1)',
+                          backfaceVisibility: 'hidden',
+                          opacity: 1,
+                        }}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-white" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
+        </FixedGameArea>
       )}
 
       {gameState.current === 'finished' && (

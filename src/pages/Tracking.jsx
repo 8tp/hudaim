@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Move, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
@@ -45,6 +46,7 @@ const selectPattern = (weights) => {
 };
 
 export default function Tracking() {
+  useDocumentTitle('Tracking | HudAim');
   const [gameState, setGameState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [finalTrackingTime, setFinalTrackingTime] = useState(0);
@@ -440,8 +442,8 @@ export default function Tracking() {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     cursorPosRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) / rect.width * GAME_WIDTH,
+      y: (e.clientY - rect.top) / rect.height * GAME_HEIGHT,
     };
 
     if (replayRecorderRef.current && gameStateRef.current === 'playing') {
@@ -490,7 +492,7 @@ export default function Tracking() {
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <p className="text-xs text-slate-400">Time</p>
-                <p className="text-lg font-bold text-purple-400">{timeLeft}s</p>
+                <p className="text-lg font-bold text-amber-400">{timeLeft}s</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-slate-400">Tracking</p>

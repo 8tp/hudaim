@@ -3,6 +3,24 @@ import { Play, Pause, RotateCcw, X } from 'lucide-react';
 import { ReplayPlayer } from '../utils/replay';
 import { GAME_WIDTH, GAME_HEIGHT } from './FixedGameArea';
 
+const useReplayScale = (wrapperRef) => {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width } = entry.contentRect;
+      // Leave some padding for the modal chrome
+      const availW = width - 48;
+      const s = Math.min(1, availW / GAME_WIDTH);
+      setScale(s);
+    });
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [wrapperRef]);
+  return scale;
+};
+
 const formatTime = (ms) => {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -29,6 +47,8 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
   const timelineRef = useRef(null);
   const animationRef = useRef(null);
   const hasAutoPlayedRef = useRef(false);
+  const replayWrapperRef = useRef(null);
+  const replayScale = useReplayScale(replayWrapperRef);
 
   // Escape key to close
   useEffect(() => {
@@ -300,12 +320,15 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
         </div>
 
         {/* Game area - keep inline for dynamic dimensions */}
+        <div ref={replayWrapperRef} className="flex justify-center overflow-hidden" style={{ height: `${GAME_HEIGHT * replayScale}px` }}>
         <div
-          className="relative mx-auto rounded-lg overflow-hidden border-2 border-slate-700"
+          className="relative rounded-lg overflow-hidden border-2 border-slate-700 shrink-0"
           style={{
             width: `${GAME_WIDTH}px`,
             height: `${GAME_HEIGHT}px`,
             backgroundColor: '#0f172a',
+            transform: `scale(${replayScale})`,
+            transformOrigin: 'top center',
           }}
         >
           {renderTargets()}
@@ -318,6 +341,7 @@ export default function ReplayViewer({ replay, onClose, autoPlay = true }) {
               transition: 'none',
             }}
           />
+        </div>
         </div>
 
         {/* Controls */}

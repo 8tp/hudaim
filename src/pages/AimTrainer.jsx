@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Target, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
@@ -11,6 +12,7 @@ import GameFinished from '../components/GameFinished';
 const TOTAL_TARGETS = 30;
 
 export default function AimTrainer() {
+  useDocumentTitle('Aim Trainer | HudAim');
   const [gameState, setGameState] = useState('idle');
   const [target, setTarget] = useState(null);
   const [score, setScore] = useState(0);
@@ -114,8 +116,8 @@ export default function AimTrainer() {
 
     if (targetRef.current && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const clickX = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+      const clickY = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
       const targetCenterX = targetRef.current.x + targetRef.current.size / 2;
       const targetCenterY = targetRef.current.y + targetRef.current.size / 2;
 
@@ -186,8 +188,8 @@ export default function AimTrainer() {
     if (gameStateRef.current !== 'playing' || !targetRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const clickX = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+    const clickY = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
     const t = targetRef.current;
 
     const targetCenterX = t.x + t.size / 2;
@@ -282,8 +284,8 @@ export default function AimTrainer() {
             if (replayRecorderRef.current && gameStateRef.current === 'playing') {
               const rect = containerRef.current.getBoundingClientRect();
               replayRecorderRef.current.recordMouseMove(
-                e.clientX - rect.left,
-                e.clientY - rect.top
+                (e.clientX - rect.left) / rect.width * GAME_WIDTH,
+                (e.clientY - rect.top) / rect.height * GAME_HEIGHT
               );
             }
           }}

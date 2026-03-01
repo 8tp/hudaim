@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import NicknamePrompt from './components/NicknamePrompt';
+import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import ReactionTime from './pages/ReactionTime';
 import AimTrainer from './pages/AimTrainer';
@@ -33,6 +34,7 @@ function App() {
         )}
         <Navbar />
         <main className="flex-1 flex flex-col overflow-hidden">
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/reaction" element={<ReactionTime />} />
@@ -52,6 +54,7 @@ function App() {
               </div>
             } />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
     </Router>

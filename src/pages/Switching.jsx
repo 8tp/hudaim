@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { flushSync } from 'react-dom';
+import useDocumentTitle from '../utils/useDocumentTitle';
 import { Crosshair, RotateCcw, Play } from 'lucide-react';
 import { getLeaderboard, getNickname, setNickname, syncLeaderboard, getUserUUID } from '../utils/leaderboard';
 import { ReplayRecorder, saveReplay } from '../utils/replay';
@@ -21,6 +22,7 @@ const STRAFE_INTERVAL = 90;
 const TARGET_FRAME_TIME = 1000 / 60;
 
 export default function Switching() {
+  useDocumentTitle('Target Switching | HudAim');
   const [gameState, setGameState] = useState('idle');
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [kills, setKills] = useState(0);
@@ -230,8 +232,8 @@ export default function Switching() {
     if (!gameAreaRef.current) return;
 
     const rect = gameAreaRef.current.getBoundingClientRect();
-    mouseXRef.current = e.clientX - rect.left;
-    mouseYRef.current = e.clientY - rect.top;
+    mouseXRef.current = (e.clientX - rect.left) / rect.width * GAME_WIDTH;
+    mouseYRef.current = (e.clientY - rect.top) / rect.height * GAME_HEIGHT;
 
     if (replayRecorderRef.current) {
       replayRecorderRef.current.recordMouseMove(mouseXRef.current, mouseYRef.current);

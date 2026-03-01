@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || null;
+import { API_BASE } from './api';
+
 
 let currentSession = null;
 
